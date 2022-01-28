@@ -1,0 +1,23 @@
+{
+  "name": "srv_squre",
+  "version": "1.0.0",
+  "description": "squre server",
+  "main": "index.js",
+  "scripts": {
+    "test": "Init srv_squre"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/higggo/srv_squre.git"
+  },
+  "keywords": [
+    "srv",
+    "squre"
+  ],
+  "author": "jdh",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/higggo/srv_squre/issues"
+  },
+  "homepage": "https://github.com/higggo/srv_squre#readme"
+}
