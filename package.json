@@ -1,23 +1,27 @@
 {
-  "name": "srv_squre",
+  "name": "srv_square",
   "version": "1.0.0",
-  "description": "squre server",
+  "description": "square server",
   "main": "index.js",
   "scripts": {
-    "test": "Init srv_squre"
+    "test": "Init srv_square"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/higggo/srv_squre.git"
+    "url": "git+https://github.com/higggo/srv_square.git"
   },
   "keywords": [
     "srv",
-    "squre"
+    "square"
   ],
   "author": "jdh",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/higggo/srv_squre/issues"
+    "url": "https://github.com/higggo/srv_square/issues"
   },
-  "homepage": "https://github.com/higggo/srv_squre#readme"
+  "homepage": "https://github.com/higggo/srv_square#readme",
+  "dependencies": {
+    "socket.io": "^4.4.1",
+    "typescript": "^4.5.5"
+  }
 }

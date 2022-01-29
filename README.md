@@ -1,2 +1,2 @@
-# srv_squre
-squre server
+# srv_square
+square server
