@@ -1,9 +1,10 @@
 import Client, { CStatus } from "./Client";
+import Queue from "./Queue";
+import Match from "./Match";
 import * as iType from "./iType"
 
 //
 const webSocket = require('ws')
-
 
 //
 enum PacketID
@@ -15,15 +16,6 @@ enum PacketID
     SC_SEARCHING_ENEMY = 3002
 }
 
-class Match
-{
-    constructor()
-    {
-        Player1 : Client;
-        Player2 : Client;
-    }
-
-}
 /////
 class Server
 {
@@ -34,11 +26,13 @@ class Server
 
     //
     Matches = new Map<number, Match>();
-    MatchQueue = new Map<number, Match>();
+    Match : Match = new Match();
 
     //
     lastUserIdx : number = 0;
     Clients = new Map<number, Client>();
+
+    roomIdx : number = 0;
 
     constructor()
     {
@@ -94,7 +88,6 @@ class Server
                 }
                 console.log(`WS Closed userIdx : ${userIdx}, Clients Size : ${this.Clients.size}`);
             })
-            
         })
 
         this.wss.on('listening', ()=>{
@@ -104,7 +97,21 @@ class Server
 
     EnterMatchQueue(client : Client)
     {
+        this.Match.players.push(client);
 
+        if(this.Match.players.length > 2)
+        {
+            this.Match.players[0].match_idx = this.roomIdx;
+            this.Match.players[1].match_idx = this.roomIdx;
+
+            let new_match = new Match();
+            new_match.players.push(this.Match.players[0]);
+            new_match.players.push(this.Match.players[1]);
+
+            this.Matches.set(this.roomIdx++, new_match);
+            new_match.send_all("packet");
+            this.Match.players = [];
+        }
     }
 }
 
