@@ -34,7 +34,7 @@ class Server
 
     //
     Matches = new Map<number, Match>();
-    MatchWaiting = new Map<number, Match>();
+    MatchQueue = new Map<number, Match>();
 
     //
     lastUserIdx : number = 0;
@@ -43,7 +43,7 @@ class Server
     constructor()
     {
         this.port = 8080;
-        this.wss = new webSocket.Server({port: 8080}, ()=>{
+        this.wss = new webSocket.Server({port: this.port}, ()=>{
             console.log('server started')
         });
     }
@@ -78,7 +78,7 @@ class Server
                         break;
                     case PacketID.CS_SEARCHING_ENEMY :
                         //let ping : iType.SC_SEARCHING_ENEMY = {ph : ph}
-                        client.status == CStatus.Idle ? this.EnterMatchWaiting(client) : null;
+                        client.status == CStatus.Idle ? this.EnterMatchQueue(client) : null;
                         break;
                     default:
                         break;
@@ -102,7 +102,7 @@ class Server
         })
     }
 
-    EnterMatchWaiting(client : Client)
+    EnterMatchQueue(client : Client)
     {
 
     }
