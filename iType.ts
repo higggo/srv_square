@@ -12,3 +12,13 @@ export interface SC_Ping
 {
     ph : Head
 }
+export interface SC_Searching_Result
+{
+    ph : Head
+    result : number
+}
+
+export interface CS_Searching_Enemy
+{
+    ph : Head
+}

@@ -13,7 +13,8 @@ enum PacketID
     CS_SEARCHING_ENEMY = 1002,
 
     SC_PING = 3033,
-    SC_SEARCHING_ENEMY = 3002
+    SC_SEARCHING_ENEMY = 3002,
+    SC_SEARCHING_RESULT = 3003
 }
 
 /////
@@ -61,7 +62,6 @@ class Server
                 const dataform = JSON.parse(data) as iType.DataForm;
                 console.log('useridx : ' + userIdx);
                 console.log('ph : ' + JSON.stringify(dataform.ph));
-                console.log('msg : ' + dataform.msg);
                 
                 let ph : iType.Head = {num : PacketID.SC_PING, size : 5}
                 let ping : iType.SC_Ping = {ph : ph}
@@ -72,7 +72,10 @@ class Server
                         break;
                     case PacketID.CS_SEARCHING_ENEMY :
                         //let ping : iType.SC_SEARCHING_ENEMY = {ph : ph}
+                        const dataform = JSON.parse(data) as iType.CS_Searching_Enemy;
+                        console.log(dataform);
                         client.status == CStatus.Idle ? this.EnterMatchQueue(client) : null;
+                        client.status = CStatus.Searching;
                         break;
                     default:
                         break;
@@ -97,10 +100,15 @@ class Server
 
     EnterMatchQueue(client : Client)
     {
+        let ph1 : iType.Head = {num : PacketID.SC_SEARCHING_RESULT, size : 5}
+        let result1 : iType.SC_Searching_Result = {ph : ph1, result : 1}
+        client.socket.send(JSON.stringify(result1))
+        console.log(`EnterMatchQueue ${client.userIdx}`);
         this.Match.players.push(client);
 
-        if(this.Match.players.length > 2)
+        if(this.Match.players.length >= 2)
         {
+            console.log(`this.Match.players.length >= 2`);
             this.Match.players[0].match_idx = this.roomIdx;
             this.Match.players[1].match_idx = this.roomIdx;
 
@@ -109,7 +117,9 @@ class Server
             new_match.players.push(this.Match.players[1]);
 
             this.Matches.set(this.roomIdx++, new_match);
-            new_match.send_all("packet");
+            let ph : iType.Head = {num : PacketID.SC_SEARCHING_RESULT, size : 5}
+            let result : iType.SC_Searching_Result = {ph : ph, result : 1}
+            new_match.send_all(JSON.stringify(result));
             this.Match.players = [];
         }
     }
