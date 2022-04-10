@@ -100,10 +100,6 @@ class Server
 
     EnterMatchQueue(client : Client)
     {
-        let ph1 : iType.Head = {num : PacketID.SC_SEARCHING_RESULT, size : 5}
-        let result1 : iType.SC_Searching_Result = {ph : ph1, result : 1}
-        client.socket.send(JSON.stringify(result1))
-        console.log(`EnterMatchQueue ${client.userIdx}`);
         this.Match.players.push(client);
 
         if(this.Match.players.length >= 2)
