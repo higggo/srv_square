@@ -11,10 +11,13 @@ enum PacketID
 {
     CS_PING = 1033,
     CS_SEARCHING_ENEMY = 1002,
+    CS_SEARCHING_RESULT = 1003,
+    CS_SEARCHING_CANCEL = 1004,
 
     SC_PING = 3033,
     SC_SEARCHING_ENEMY = 3002,
-    SC_SEARCHING_RESULT = 3003
+    SC_SEARCHING_RESULT = 3003,
+    SC_SEARCHING_CANCEL = 3004,
 }
 
 /////
@@ -74,8 +77,27 @@ class Server
                         //let ping : iType.SC_SEARCHING_ENEMY = {ph : ph}
                         const dataform = JSON.parse(data) as iType.CS_Searching_Enemy;
                         console.log(dataform);
-                        client.status == CStatus.Idle ? this.EnterMatchQueue(client) : null;
+                        console.log(`Match.players.length ${this.Match.players.length}`);
+
+                        if(client.status == CStatus.Idle) 
+                        {
+                            this.EnterMatchQueue(client);
+                        }
                         client.status = CStatus.Searching;
+                        break;
+                        
+                    case PacketID.CS_SEARCHING_CANCEL :
+                        for(var i=0; i<this.Match.players.length; i++)
+                        {
+                            if(this.Match.players[i].userIdx == client.userIdx)
+                            {
+                                this.Match.players.splice(i);
+                                
+                                client.status = CStatus.Idle;
+                                client.socket.send(JSON.stringify({ph : {num : PacketID.SC_SEARCHING_CANCEL, size : 5}}));
+                                break;
+                            }
+                        }
                         break;
                     default:
                         break;
@@ -89,7 +111,7 @@ class Server
                     this.Clients.delete(userIdx);
                     console.log(`deleted idx : ${userIdx}`);
                 }
-                console.log(`WS Closed userIdx : ${userIdx}, Clients Size : ${this.Clients.size}`);
+                console.log(`WS Closed userIdx : ${userIdx}, Clients Size : ${this.Clients.size}, Match.players.length ${this.Match.players.length}`);
             })
         })
 
@@ -113,10 +135,16 @@ class Server
             new_match.players.push(this.Match.players[1]);
 
             this.Matches.set(this.roomIdx++, new_match);
-            let ph : iType.Head = {num : PacketID.SC_SEARCHING_RESULT, size : 5}
-            let result : iType.SC_Searching_Result = {ph : ph, result : 1}
+            let ph : iType.Head = {num : PacketID.SC_SEARCHING_RESULT, size : 5};
+            let result : iType.SC_Searching_Result = {ph : ph, result : 1};
             new_match.send_all(JSON.stringify(result));
             this.Match.players = [];
+        }
+        else
+        {
+            let ph : iType.Head = {num : PacketID.SC_SEARCHING_ENEMY, size : 5};
+            let result : iType.SC_Searching_Enemy = {ph : ph};
+            client.socket.send(JSON.stringify(result));
         }
     }
 }
