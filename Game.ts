@@ -1,72 +1,15 @@
-enum SQUARE_ONE
+export interface matrix
 {
-    up = 11,
-    down = 31,
-    left = 21,
-    right = 22
+    row : number,
+    col : number
 }
-enum SQUARE_TWO
-{
-    up = 12,
-    down = 32,
-    left = 22,
-    right = 23
-}
-enum SQUARE_THREE
-{
-    up = 13,
-    down = 33,
-    left = 23,
-    right = 24
-}
-enum SQUARE_FOUR
-{
-    up = 31,
-    down = 51,
-    left = 41,
-    right = 42
-}
-enum SQUARE_FIVE
-{
-    up = 32,
-    down = 52,
-    left = 42,
-    right = 43
-}
-enum SQUARE_SIX
-{
-    up = 33,
-    down = 53,
-    left = 43,
-    right = 44
-}
-enum SQUARE_SEVEN
-{
-    up = 51,
-    down = 71,
-    left = 61,
-    right = 62
-}
-enum SQUARE_EIGHT
-{
-    up = 52,
-    down = 72,
-    left = 62,
-    right = 63
-}
-enum SQUARE_NINE
-{
-    up = 53,
-    down = 73,
-    left = 63,
-    right = 64
-}
-
-class Game{
+export default class Game{
     Bar = new Map<number, boolean>();
-
+    point_matrixes : matrix[] = [];
     Init()
     {
+        this.point_matrixes = [];
+
         this.Bar.set(11, true);
         this.Bar.set(12, true);
         this.Bar.set(13, true);
@@ -99,62 +42,81 @@ class Game{
         this.Bar.set(73, true);
     }
 
-    CheckSquare(barNum : number) : number[]
+    ActiveBar(num : number) : boolean
     {
-        let number : number[] = [];
+        if(this.Bar.get(num))
+        {
+            this.Bar.set(num, false);
+            return true;
+        }
+        else
+            return false;
+    }
+
+    CheckSquare(barNum : number) : matrix[]
+    {
+        let chk_matrixes : matrix[] = [];
+        let point_matrixes : matrix[] = [];
         let w = 3;
         let h = 3;
 
-        let ten : number = barNum / 10;
-        let one : number = barNum % 10;
+        let ten : number = Math.floor(barNum / 10);
+        let one : number = Math.floor(barNum % 10);
 
-        if(ten == 1)
+        // 십의 자리 수가
+        // 2, 4, 6...
+        if(ten % 2 == 0)
         {
-
-        }
-        else if(ten == (w * 2) + 1)
-        {
-
-        }
-        else
-        {
-            // 십의 자리 수가
-            // 2, 4, 6...
-            if(ten % 2 == 0)
+            let floor = Math.floor(ten / 2);
+            if(one == 1)
             {
-                let floor = ten / 2;
-                if(one == 1)
-                {
-                    number.push(((floor-1) * 3) + one);
-                }
-                else if(one == w + 1)
-                {
-                    number.push(((floor-1) * 3) + w);
-                }
-                else
-                {
-                    number.push(((floor-1) * 3) + one-1);
-                    number.push(((floor-1) * 3) + one);
-                }
+                chk_matrixes.push({row : floor, col : one});
             }
-            // 십의 자리 수가
-            // 1, 3, 5..
+            else if(one == w + 1)
+            {
+                chk_matrixes.push({row : floor, col : one-1});
+            }
             else
             {
-                if(one == 1)
-                {
-
-                }
-                else if(one == (h*2)+1)
-                {
-
-                }
-                else
-                {
-
-                }
+                chk_matrixes.push({row : floor, col : one-1});
+                chk_matrixes.push({row : floor, col : one});
             }
         }
-        return number;
+        // 십의 자리 수가
+        // 1, 3, 5..
+        else
+        {
+            let floor = Math.floor(ten / 2);
+            if(ten == 1)
+            {
+                chk_matrixes.push({row : floor+1, col : one});
+            }
+            else if(ten == (h*2)+1)
+            {
+                chk_matrixes.push({row : floor, col : one});
+            }
+            else
+            {
+                chk_matrixes.push({row : floor+1, col : one});
+                chk_matrixes.push({row : floor, col : one});
+            }
+        }
+        
+        chk_matrixes.forEach(matrix => {
+            let ten = (matrix.row * 2) * 10;
+            let one = matrix.col;
+            let bar = ten + one;
+
+            if(this.Bar.get(bar + 10)
+             && this.Bar.get(bar - 10)
+             && this.Bar.get(bar)
+             && this.Bar.get(bar + 1))
+            {
+                point_matrixes.push({row : matrix.row, col : matrix.col});
+                this.point_matrixes.push({row : matrix.row, col : matrix.col});
+            }
+        });
+
+        return point_matrixes;
     }
 }

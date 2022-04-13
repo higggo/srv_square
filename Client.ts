@@ -1,3 +1,6 @@
+
+import { textChangeRangeIsUnchanged } from "typescript";
+import Match from "./Match";
 export enum CStatus
 {
     Idle,
@@ -6,17 +9,26 @@ export enum CStatus
 }
 export default class Client
 {
-    userIdx : Number;
+    userIdx : number;
     socket : any;
     status : CStatus;
-    public match_idx : number;
-    constructor(userIdx : Number, socket : any)
+    match : Match | null;
+    ready : boolean
+    point : number;
+    
+    constructor(userIdx : number, socket : any)
     {
         this.userIdx = userIdx;
         this.socket = socket;
         this.status = CStatus.Idle;
 
-        this.match_idx = 0;
+        this.match = null;
+        this.ready = false;
+        this.point = 0;
     }
-
+    public game_init()
+    {
+        this.ready = false;
+        this.point = 0;
+    }
 }

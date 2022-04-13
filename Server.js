@@ -36,10 +36,24 @@ var PacketID;
     PacketID[PacketID["CS_SEARCHING_ENEMY"] = 1002] = "CS_SEARCHING_ENEMY";
     PacketID[PacketID["CS_SEARCHING_RESULT"] = 1003] = "CS_SEARCHING_RESULT";
     PacketID[PacketID["CS_SEARCHING_CANCEL"] = 1004] = "CS_SEARCHING_CANCEL";
+    PacketID[PacketID["CS_GAME_READY"] = 1005] = "CS_GAME_READY";
+    PacketID[PacketID["CS_GAME_START"] = 1006] = "CS_GAME_START";
+    PacketID[PacketID["CS_GAME_COMPUTE"] = 1007] = "CS_GAME_COMPUTE";
+    PacketID[PacketID["CS_GAME_TURN"] = 1008] = "CS_GAME_TURN";
+    PacketID[PacketID["CS_GAME_SELECT"] = 1009] = "CS_GAME_SELECT";
+    PacketID[PacketID["CS_GAME_RESULT"] = 1010] = "CS_GAME_RESULT";
+    PacketID[PacketID["CS_GAME_OUT"] = 1011] = "CS_GAME_OUT";
     PacketID[PacketID["SC_PING"] = 3033] = "SC_PING";
     PacketID[PacketID["SC_SEARCHING_ENEMY"] = 3002] = "SC_SEARCHING_ENEMY";
     PacketID[PacketID["SC_SEARCHING_RESULT"] = 3003] = "SC_SEARCHING_RESULT";
     PacketID[PacketID["SC_SEARCHING_CANCEL"] = 3004] = "SC_SEARCHING_CANCEL";
+    PacketID[PacketID["SC_GAME_READY"] = 3005] = "SC_GAME_READY";
+    PacketID[PacketID["SC_GAME_START"] = 3006] = "SC_GAME_START";
+    PacketID[PacketID["SC_GAME_COMPUTE"] = 3007] = "SC_GAME_COMPUTE";
+    PacketID[PacketID["SC_GAME_TURN"] = 3008] = "SC_GAME_TURN";
+    PacketID[PacketID["SC_GAME_SELECT"] = 3009] = "SC_GAME_SELECT";
+    PacketID[PacketID["SC_GAME_RESULT"] = 3010] = "SC_GAME_RESULT";
+    PacketID[PacketID["SC_GAME_OUT"] = 3011] = "SC_GAME_OUT";
 })(PacketID || (PacketID = {}));
 /////
 class Server {
@@ -60,12 +74,14 @@ class Server {
     }
     RUNNING() {
         this.wss.on('connection', (ws) => {
+            console.log("aaaaaa");
             //
             const userIdx = this.lastUserIdx++;
             let client = new Client_1.default(userIdx, ws);
             this.Clients.set(userIdx, client);
             //
             ws.on('message', (data) => {
+                var _a, _b, _c, _d, _e, _f, _g, _h, _j;
                 //console.log('data received %o', data.toString())
                 const dataform = JSON.parse(data);
                 console.log('useridx : ' + userIdx);
@@ -96,6 +112,40 @@ class Server {
                             }
                         }
                         break;
+                    case PacketID.CS_GAME_READY:
+                        const cs_game_ready = JSON.parse(data);
+                        client.ready = cs_game_ready.ready;
+                        if ((_a = client.match) === null || _a === void 0 ? void 0 : _a.all_ready()) {
+                            (_b = client.match) === null || _b === void 0 ? void 0 : _b.init();
+                            let ph1 = { num: PacketID.SC_GAME_START, size: 5 };
+                            let result1;
+                            client.match.players.forEach(player => {
+                                result1 = { ph: ph, userIdx: player.userIdx };
+                                player.socket.send(JSON.stringify(result1));
+                            });
+                            client.match.turn = client.userIdx;
+                            let ph2 = { num: PacketID.SC_GAME_TURN, size: 5 };
+                            let result2 = { ph: ph, userIdx: client.match.turn };
+                            (_c = client.match) === null || _c === void 0 ? void 0 : _c.send_all(JSON.stringify(result2));
+                        }
+                        break;
+                    case PacketID.CS_GAME_SELECT:
+                        if (((_d = client.match) === null || _d === void 0 ? void 0 : _d.turn) == client.userIdx) {
+                            const cs_game_select = JSON.parse(data);
+                            let squares = (_e = client.match) === null || _e === void 0 ? void 0 : _e.game.CheckSquare(cs_game_select.bar);
+                            client.point += squares.length;
+                            let ph = { num: PacketID.SC_GAME_COMPUTE, size: 5 };
+                            let result = { ph: ph, bar: cs_game_select.bar, userIdx: client.userIdx, matrixes: squares };
+                            (_f = client.match) === null || _f === void 0 ? void 0 : _f.send_all(JSON.stringify(result));
+                        }
+                        break;
+                    case PacketID.CS_GAME_COMPUTE:
+                        if (((_g = client.match) === null || _g === void 0 ? void 0 : _g.game.point_matrixes.length) == 9) {
+                            let ph = { num: PacketID.SC_GAME_RESULT, size: 5 };
+                            let result = { ph: ph, winner: (_h = client.match) === null || _h === void 0 ? void 0 : _h.winner() };
+                            (_j = client.match) === null || _j === void 0 ? void 0 : _j.send_all(JSON.stringify(result));
+                        }
+                        break;
                     default:
                         break;
                 }
@@ -117,11 +167,11 @@ class Server {
         this.Match.players.push(client);
         if (this.Match.players.length >= 2) {
             console.log(`this.Match.players.length >= 2`);
-            this.Match.players[0].match_idx = this.roomIdx;
-            this.Match.players[1].match_idx = this.roomIdx;
             let new_match = new Match_1.default();
             new_match.players.push(this.Match.players[0]);
             new_match.players.push(this.Match.players[1]);
+            this.Match.players[0].match = new_match;
+            this.Match.players[1].match = new_match;
             this.Matches.set(this.roomIdx++, new_match);
             let ph = { num: PacketID.SC_SEARCHING_RESULT, size: 5 };
             let result = { ph: ph, result: 1 };

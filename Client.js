@@ -12,7 +12,13 @@ class Client {
         this.userIdx = userIdx;
         this.socket = socket;
         this.status = CStatus.Idle;
-        this.match_idx = 0;
+        this.match = null;
+        this.ready = false;
+        this.point = 0;
+    }
+    game_init() {
+        this.ready = false;
+        this.point = 0;
     }
 }
 exports.default = Client;
