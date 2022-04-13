@@ -1,11 +1,7 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -84,8 +80,8 @@ class Server {
                 var _a, _b, _c, _d, _e, _f, _g, _h, _j;
                 //console.log('data received %o', data.toString())
                 const dataform = JSON.parse(data);
-                console.log('useridx : ' + userIdx);
-                console.log('ph : ' + JSON.stringify(dataform.ph));
+                if (dataform.ph.num != 1033)
+                    console.log('ph : ' + JSON.stringify(dataform.ph));
                 let ph = { num: PacketID.SC_PING, size: 5 };
                 let ping = { ph: ph };
                 switch (dataform.ph.num) {
@@ -115,17 +111,29 @@ class Server {
                     case PacketID.CS_GAME_READY:
                         const cs_game_ready = JSON.parse(data);
                         client.ready = cs_game_ready.ready;
+                        let ph2 = { num: PacketID.SC_GAME_READY, size: 5 };
+                        let result2;
+                        if (client.match != null) {
+                            client.match.players.forEach(player => {
+                                result2 = { ph: ph2, ready: cs_game_ready.ready };
+                                player.socket.send(JSON.stringify(result2));
+                            });
+                        }
                         if ((_a = client.match) === null || _a === void 0 ? void 0 : _a.all_ready()) {
                             (_b = client.match) === null || _b === void 0 ? void 0 : _b.init();
                             let ph1 = { num: PacketID.SC_GAME_START, size: 5 };
                             let result1;
                             client.match.players.forEach(player => {
-                                result1 = { ph: ph, userIdx: player.userIdx };
+                                result1 = { ph: ph1, userIdx: player.userIdx };
                                 player.socket.send(JSON.stringify(result1));
                             });
+                        }
+                        break;
+                    case PacketID.CS_GAME_START:
+                        if (client.match != null) {
                             client.match.turn = client.userIdx;
                             let ph2 = { num: PacketID.SC_GAME_TURN, size: 5 };
-                            let result2 = { ph: ph, userIdx: client.match.turn };
+                            let result2 = { ph: ph2, userIdx: client.match.turn };
                             (_c = client.match) === null || _c === void 0 ? void 0 : _c.send_all(JSON.stringify(result2));
                         }
                         break;

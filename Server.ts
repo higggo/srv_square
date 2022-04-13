@@ -78,8 +78,8 @@ class Server
             ws.on('message', (data: string)=>{
                 //console.log('data received %o', data.toString())
                 const dataform = JSON.parse(data) as iType.DataForm;
-                console.log('useridx : ' + userIdx);
-                console.log('ph : ' + JSON.stringify(dataform.ph));
+                if(dataform.ph.num != 1033)
+                    console.log('ph : ' + JSON.stringify(dataform.ph));
                 
                 let ph : iType.Head = {num : PacketID.SC_PING, size : 5}
                 let ping : iType.SC_Ping = {ph : ph}
@@ -117,6 +117,17 @@ class Server
                     case PacketID.CS_GAME_READY:
                         const cs_game_ready = JSON.parse(data) as iType.CS_Game_Ready;
                         client.ready = cs_game_ready.ready;
+
+                        let ph2 : iType.Head = {num : PacketID.SC_GAME_READY, size : 5};
+                        let result2 : iType.SC_Game_Ready;
+                        if(client.match != null)
+                        {
+                            client.match.players.forEach(player => {
+                                result2 = {ph : ph2, ready : cs_game_ready.ready};
+                                player.socket.send(JSON.stringify(result2));
+                            });
+                        }
+
                         if(client.match?.all_ready())
                         {
                             client.match?.init();
@@ -124,14 +135,20 @@ class Server
                             let ph1 : iType.Head = {num : PacketID.SC_GAME_START, size : 5};
                             let result1 : iType.SC_Game_Start;
                             client.match.players.forEach(player => {
-                                result1 = {ph : ph, userIdx : player.userIdx};
+                                result1 = {ph : ph1, userIdx : player.userIdx};
                                 player.socket.send(JSON.stringify(result1));
                             });
 
                             
+                        }
+                        break;
+
+                    case PacketID.CS_GAME_START:
+                        if(client.match != null)
+                        {
                             client.match.turn = client.userIdx;
                             let ph2 : iType.Head = {num : PacketID.SC_GAME_TURN, size : 5};
-                            let result2 : iType.SC_Game_Turn = {ph : ph, userIdx : client.match.turn};
+                            let result2 : iType.SC_Game_Turn = {ph : ph2, userIdx : client.match.turn};
                             client.match?.send_all(JSON.stringify(result2));
                         }
                         break;
