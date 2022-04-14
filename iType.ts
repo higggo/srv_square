@@ -1,5 +1,32 @@
 
 import Game, {matrix} from "./Game";
+//
+export enum PacketID
+{
+    CS_PING = 1033,
+    CS_SEARCHING_ENEMY = 1002,
+    CS_SEARCHING_RESULT = 1003,
+    CS_SEARCHING_CANCEL = 1004,
+    CS_GAME_READY = 1005,
+    CS_GAME_START = 1006,
+    CS_GAME_COMPUTE = 1007,
+    CS_GAME_TURN = 1008,
+    CS_GAME_SELECT = 1009,
+    CS_GAME_RESULT = 1010,
+    CS_GAME_OUT = 1011,
+
+    SC_PING = 3033,
+    SC_SEARCHING_ENEMY = 3002,
+    SC_SEARCHING_RESULT = 3003,
+    SC_SEARCHING_CANCEL = 3004,
+    SC_GAME_READY = 3005,
+    SC_GAME_START = 3006,
+    SC_GAME_COMPUTE = 3007,
+    SC_GAME_TURN = 3008,
+    SC_GAME_SELECT = 3009,
+    SC_GAME_RESULT = 3010,
+    SC_GAME_OUT = 3011
+}
 export interface Head
 {
     num : number
@@ -65,6 +92,8 @@ export interface SC_Game_Result
 {
     ph : Head
     winner : number
+    winner_point : number
+    looser_point : number
 }
 
 

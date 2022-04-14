@@ -9,6 +9,7 @@ var CStatus;
 })(CStatus = exports.CStatus || (exports.CStatus = {}));
 class Client {
     constructor(userIdx, socket) {
+        this.packet_res = new Map();
         this.userIdx = userIdx;
         this.socket = socket;
         this.status = CStatus.Idle;
@@ -19,6 +20,7 @@ class Client {
     game_init() {
         this.ready = false;
         this.point = 0;
+        this.packet_res.clear();
     }
 }
 exports.default = Client;

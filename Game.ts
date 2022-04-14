@@ -107,10 +107,10 @@ export default class Game{
             let one = matrix.col;
             let bar = ten + one;
 
-            if(this.Bar.get(bar + 10)
-             && this.Bar.get(bar - 10)
-             && this.Bar.get(bar)
-             && this.Bar.get(bar + 1))
+            if(!this.Bar.get(bar + 10)
+             && !this.Bar.get(bar - 10)
+             && !this.Bar.get(bar)
+             && !this.Bar.get(bar + 1))
             {
                 point_matrixes.push({row : matrix.row, col : matrix.col});
                 this.point_matrixes.push({row : matrix.row, col : matrix.col});

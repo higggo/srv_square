@@ -1,6 +1,7 @@
 
 import { textChangeRangeIsUnchanged } from "typescript";
 import Match from "./Match";
+import * as iType from "./iType"
 export enum CStatus
 {
     Idle,
@@ -15,6 +16,7 @@ export default class Client
     match : Match | null;
     ready : boolean
     point : number;
+    packet_res = new Map<iType.PacketID, boolean>();
     
     constructor(userIdx : number, socket : any)
     {
@@ -30,5 +32,7 @@ export default class Client
     {
         this.ready = false;
         this.point = 0;
+
+        this.packet_res.clear();
     }
 }
