@@ -1,13 +1,36 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const Game_1 = __importDefault(require("./Game"));
+const iType = __importStar(require("./iType"));
+const Timer_1 = __importDefault(require("./Timer"));
 class Match {
     //public response = new Map<number,
     constructor() {
-        this.players = new Array();
+        // timer
+        this.timer = new Timer_1.default();
+        this.players = new Map();
         this.game = new Game_1.default();
         this.turn = 0;
         this.nextTurn = 0;
@@ -17,18 +40,23 @@ class Match {
         this.players.forEach(player => {
             player.game_init();
         });
+        this.timer.SetCallback(() => { this.TimerEnd(); }, () => { this.SendTimer(); });
     }
     start() {
     }
     send_all(packet) {
-        this.players[0].socket.send(packet);
-        this.players[1].socket.send(packet);
+        for (const player of this.players.values()) {
+            player.socket.send(packet);
+        }
     }
     send(client, packet) {
-        if (client == this.players[0])
-            this.players[0].socket.send(packet);
-        if (client == this.players[1])
-            this.players[1].socket.send(packet);
+        for (const player of this.players.values()) {
+            if (client == player) {
+                player.socket.send(packet);
+                return;
+            }
+        }
+        console.log("Not Exist That Client !");
     }
     all_ready() {
         let start = true;
@@ -43,38 +71,69 @@ class Match {
         let idx = 0;
         let point = 0;
         let client;
-        for (var i = 0; i < this.players.length; i++) {
+        for (const player of this.players.values()) {
             if (point == 0) {
-                point = this.players[i].point;
-                client = this.players[i];
+                point = player.point;
+                client = player;
                 continue;
             }
-            if (this.players[i].point > point) {
-                point = this.players[i].point;
-                client = this.players[i];
+            if (player.point > point) {
+                point = player.point;
+                client = player;
             }
         }
         return client;
     }
     other(client) {
-        let player = null;
-        for (var i = 0; i < this.players.length; i++) {
-            if (this.players[i].userIdx != client.userIdx)
-                player = this.players[i];
+        let other;
+        for (const player of this.players.values()) {
+            if (player.userIdx != client.userIdx)
+                other = player;
         }
-        return player;
+        return other;
     }
     SaveAllPlayerRes(packetID, res) {
-        for (var i = 0; i < this.players.length; i++) {
-            this.players[i].packet_res.set(packetID, res);
+        for (const player of this.players.values()) {
+            player.packet_res.set(packetID, res);
         }
     }
     CheckAllPlayerRes(packetID) {
         let confirm = true;
-        for (var i = 0; i < this.players.length; i++) {
-            confirm = this.players[i].packet_res.get(packetID);
+        for (const player of this.players.values()) {
+            confirm = player.packet_res.get(packetID);
         }
         return confirm;
+    }
+    SetTimer(sec, exitCount, packetID) {
+        this.timer.SetTimer(sec, exitCount, packetID);
+    }
+    TimerEnd() {
+        console.log("TimerEnd");
+        if (this.CheckAllPlayerRes(this.timer.packetID)) {
+            this.timer.Clear();
+            return;
+        }
+        switch (this.timer.packetID) {
+            case iType.PacketID.CS_GAME_ENTRY:
+                let ph = { num: iType.PacketID.SC_GAME_ENTRY, size: 5 };
+                let result = { ph: ph };
+                this.send_all(JSON.stringify(result));
+                break;
+            default:
+                break;
+        }
+    }
+    SendTimer() {
+        console.log("SendTimer");
+        switch (this.timer.packetID) {
+            case iType.PacketID.CS_GAME_ENTRY:
+                let ph = { num: iType.PacketID.SC_GAME_TIMER, size: 5 };
+                let result = { ph: ph, sec: this.timer.exitCount - this.timer.nowCount };
+                this.send_all(JSON.stringify(result));
+                break;
+            default:
+                break;
+        }
     }
 }
 exports.default = Match;

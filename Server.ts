@@ -26,6 +26,7 @@ class Server
 
     roomIdx : number = 0;
 
+
     constructor()
     {
         this.port = 8080;
@@ -45,7 +46,9 @@ class Server
             //
             const userIdx = this.lastUserIdx++;
             let client : Client = new Client(userIdx, ws);
+            client.OnConnected();
             this.Clients.set(userIdx, client);
+
             
             //
             ws.on('message', (data: string)=>{
@@ -65,7 +68,7 @@ class Server
                         //let ping : iType.SC_SEARCHING_ENEMY = {ph : ph}
                         const dataform = JSON.parse(data) as iType.CS_Searching_Enemy;
                         console.log(dataform);
-                        console.log(`Match.players.length ${this.Match.players.length}`);
+                        console.log(`Match.players.length ${this.Match.players.size}`);
 
                         if(client.status == CStatus.Idle) 
                         {
@@ -75,17 +78,31 @@ class Server
                         break;
                         
                     case iType.PacketID.CS_SEARCHING_CANCEL :
-                        for(var i=0; i<this.Match.players.length; i++)
+                        for (const [idx, player] of this.Match.players) 
                         {
-                            if(this.Match.players[i].userIdx == client.userIdx)
+                            if(player.userIdx == client.userIdx)
                             {
-                                this.Match.players.splice(i);
+                                this.Match.players.delete(idx);
                                 
                                 client.status = CStatus.Idle;
                                 client.socket.send(JSON.stringify({ph : {num : iType.PacketID.SC_SEARCHING_CANCEL, size : 5}}));
                                 break;
                             }
                         }
+                        break;
+
+                    case iType.PacketID.CS_GAME_ENTRY:
+                        client.packet_res.set(iType.PacketID.CS_GAME_ENTRY, true);
+
+                    let ph : iType.Head = {num : iType.PacketID.SC_GAME_ENTRY, size : 5};
+                    let result : iType.SC_Game_Entry = {ph : ph};
+                    client.match?.send(client, JSON.stringify(result));
+                        if(client.match?.CheckAllPlayerRes(iType.PacketID.CS_GAME_ENTRY))
+                        {
+                            client.match.timer.Clear();
+                        }
+
+                        
                         break;
                     case iType.PacketID.CS_GAME_READY:
                         const cs_game_ready = JSON.parse(data) as iType.CS_Game_Ready;
@@ -159,10 +176,8 @@ class Server
                                 let ph : iType.Head = {num : iType.PacketID.SC_GAME_RESULT, size : 5};
                                 let result : iType.SC_Game_Result = {ph : ph, winner : client.match?.winner().userIdx , winner_point : client.match?.winner().point, looser_point : looser?.point};
                                 
-
-                                console.log("SC_Game_Result sadasdasss");
-                                client.match?.SaveAllPlayerRes(iType.PacketID.SC_GAME_RESULT, false);
                                 client.match?.send_all(JSON.stringify(result));
+                                client.match?.SaveAllPlayerRes(iType.PacketID.SC_GAME_RESULT, false);
                             }
                             else
                             {
@@ -184,6 +199,8 @@ class Server
                             client.match.init();
                         }
                         break;
+                    case iType.PacketID.CS_GAME_TIMER:
+                        break;
                     default:
                         break;
                 }
@@ -193,10 +210,23 @@ class Server
             ws.on('close', () =>{
                 if(this.Clients.has(userIdx)) 
                 {
+                    client.OnDisconnected();
+                    switch(client.status)
+                    {
+                        case CStatus.Idle:
+                            break;
+                        case CStatus.Searching:
+                            this.Match.players.delete(client.userIdx);
+                            break;
+                        case CStatus.Playing:
+                            break;
+                        default :
+                            break;
+                    }
                     this.Clients.delete(userIdx);
                     console.log(`deleted idx : ${userIdx}`);
                 }
-                console.log(`WS Closed userIdx : ${userIdx}, Clients Size : ${this.Clients.size}, Match.players.length ${this.Match.players.length}`);
+                console.log(`WS Closed userIdx : ${userIdx}, Clients Size : ${this.Clients.size}, Match.players.length ${this.Match.players.size}`);
             })
         })
 
@@ -207,23 +237,35 @@ class Server
 
     EnterMatchQueue(client : Client)
     {
-        this.Match.players.push(client);
+        this.Match.players.set(client.userIdx, client);
 
-        if(this.Match.players.length >= 2)
+        if(this.Match.players.size >= 2)
         {
             console.log(`this.Match.players.length >= 2`);
 
             let new_match = new Match();
-            new_match.players.push(this.Match.players[0]);
-            new_match.players.push(this.Match.players[1]);
-            this.Match.players[0].match = new_match;
-            this.Match.players[1].match = new_match;
+            for (const player of this.Match.players.values()) 
+            {
+                new_match.players.set(player.userIdx, player);
+                player.match = new_match;
+            }
 
             this.Matches.set(this.roomIdx++, new_match);
             let ph : iType.Head = {num : iType.PacketID.SC_SEARCHING_RESULT, size : 5};
             let result : iType.SC_Searching_Result = {ph : ph, result : 1};
             new_match.send_all(JSON.stringify(result));
-            this.Match.players = [];
+            new_match.SaveAllPlayerRes(iType.PacketID.CS_GAME_ENTRY, false);
+            this.Match.players.clear();
+
+            if(client.match != null)
+            {
+                client.match.SetTimer(1000, 5, iType.PacketID.CS_GAME_ENTRY);
+                client.match?.init();
+
+                // state
+                client.status = CStatus.Playing;
+                client.match.other(client).status = CStatus.Playing;
+            }
         }
         else
         {
@@ -231,7 +273,13 @@ class Server
             let result : iType.SC_Searching_Enemy = {ph : ph};
             client.socket.send(JSON.stringify(result));
         }
+
+
+        //
+
+
     }
+
 }
 
 export = new Server();

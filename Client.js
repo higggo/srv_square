@@ -16,11 +16,18 @@ class Client {
         this.match = null;
         this.ready = false;
         this.point = 0;
+        this.connect = false;
     }
     game_init() {
         this.ready = false;
         this.point = 0;
         this.packet_res.clear();
+    }
+    OnDisconnected() {
+        this.connect = false;
+    }
+    OnConnected() {
+        this.connect = true;
     }
 }
 exports.default = Client;

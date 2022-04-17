@@ -14,6 +14,8 @@ export enum PacketID
     CS_GAME_SELECT = 1009,
     CS_GAME_RESULT = 1010,
     CS_GAME_OUT = 1011,
+    CS_GAME_TIMER = 1012,
+    CS_GAME_ENTRY = 1013,
 
     SC_PING = 3033,
     SC_SEARCHING_ENEMY = 3002,
@@ -25,7 +27,9 @@ export enum PacketID
     SC_GAME_TURN = 3008,
     SC_GAME_SELECT = 3009,
     SC_GAME_RESULT = 3010,
-    SC_GAME_OUT = 3011
+    SC_GAME_OUT = 3011,
+    SC_GAME_TIMER = 3012,
+    SC_GAME_ENTRY = 3013,
 }
 export interface Head
 {
@@ -103,6 +107,15 @@ export interface SC_Game_Out
     gameOut : boolean
 }
 
+export interface SC_Game_Timer
+{
+     ph : Head
+     sec : number
+}
+export interface SC_Game_Entry
+{
+     ph : Head
+}
 
 //////
 export interface CS_Searching_Enemy
@@ -148,4 +161,13 @@ export interface CS_Game_Out
 {
      ph : Head
      gameOut : boolean
+}
+
+export interface CS_Game_Timer
+{
+     ph : Head
+}
+export interface CS_Game_Entry
+{
+     ph : Head
 }

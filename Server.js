@@ -1,11 +1,7 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -52,10 +48,11 @@ class Server {
             //
             const userIdx = this.lastUserIdx++;
             let client = new Client_1.default(userIdx, ws);
+            client.OnConnected();
             this.Clients.set(userIdx, client);
             //
             ws.on('message', (data) => {
-                var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t;
+                var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v;
                 //console.log('data received %o', data.toString())
                 const dataform = JSON.parse(data);
                 if (dataform.ph.num != 1033)
@@ -70,20 +67,29 @@ class Server {
                         //let ping : iType.SC_SEARCHING_ENEMY = {ph : ph}
                         const dataform = JSON.parse(data);
                         console.log(dataform);
-                        console.log(`Match.players.length ${this.Match.players.length}`);
+                        console.log(`Match.players.length ${this.Match.players.size}`);
                         if (client.status == Client_1.CStatus.Idle) {
                             this.EnterMatchQueue(client);
                         }
                         client.status = Client_1.CStatus.Searching;
                         break;
                     case iType.PacketID.CS_SEARCHING_CANCEL:
-                        for (var i = 0; i < this.Match.players.length; i++) {
-                            if (this.Match.players[i].userIdx == client.userIdx) {
-                                this.Match.players.splice(i);
+                        for (const [idx, player] of this.Match.players) {
+                            if (player.userIdx == client.userIdx) {
+                                this.Match.players.delete(idx);
                                 client.status = Client_1.CStatus.Idle;
                                 client.socket.send(JSON.stringify({ ph: { num: iType.PacketID.SC_SEARCHING_CANCEL, size: 5 } }));
                                 break;
                             }
+                        }
+                        break;
+                    case iType.PacketID.CS_GAME_ENTRY:
+                        client.packet_res.set(iType.PacketID.CS_GAME_ENTRY, true);
+                        let ph = { num: iType.PacketID.SC_GAME_ENTRY, size: 5 };
+                        let result = { ph: ph };
+                        (_a = client.match) === null || _a === void 0 ? void 0 : _a.send(client, JSON.stringify(result));
+                        if ((_b = client.match) === null || _b === void 0 ? void 0 : _b.CheckAllPlayerRes(iType.PacketID.CS_GAME_ENTRY)) {
+                            client.match.timer.Clear();
                         }
                         break;
                     case iType.PacketID.CS_GAME_READY:
@@ -95,8 +101,8 @@ class Server {
                             result2 = { ph: ph2, ready: cs_game_ready.ready };
                             client.socket.send(JSON.stringify(result2));
                         }
-                        if ((_a = client.match) === null || _a === void 0 ? void 0 : _a.all_ready()) {
-                            (_b = client.match) === null || _b === void 0 ? void 0 : _b.init();
+                        if ((_c = client.match) === null || _c === void 0 ? void 0 : _c.all_ready()) {
+                            (_d = client.match) === null || _d === void 0 ? void 0 : _d.init();
                             let ph1 = { num: iType.PacketID.SC_GAME_START, size: 5 };
                             let result1;
                             client.match.players.forEach(player => {
@@ -110,22 +116,22 @@ class Server {
                             client.match.turn = client.userIdx;
                             let ph2 = { num: iType.PacketID.SC_GAME_TURN, size: 5 };
                             let result2 = { ph: ph2, userIdx: client.match.turn };
-                            (_c = client.match) === null || _c === void 0 ? void 0 : _c.send_all(JSON.stringify(result2));
+                            (_e = client.match) === null || _e === void 0 ? void 0 : _e.send_all(JSON.stringify(result2));
                         }
                         break;
                     case iType.PacketID.CS_GAME_SELECT:
-                        if (((_d = client.match) === null || _d === void 0 ? void 0 : _d.turn) == client.userIdx) {
+                        if (((_f = client.match) === null || _f === void 0 ? void 0 : _f.turn) == client.userIdx) {
                             const cs_game_select = JSON.parse(data);
                             if (client.match.game.ActiveBar(cs_game_select.bar)) {
-                                let squares = (_e = client.match) === null || _e === void 0 ? void 0 : _e.game.CheckSquare(cs_game_select.bar);
+                                let squares = (_g = client.match) === null || _g === void 0 ? void 0 : _g.game.CheckSquare(cs_game_select.bar);
                                 client.point += squares.length;
                                 let ph = { num: iType.PacketID.SC_GAME_COMPUTE, size: 5 };
                                 let result = { ph: ph, bar: cs_game_select.bar, userIdx: client.userIdx, matrixes: squares };
-                                (_f = client.match) === null || _f === void 0 ? void 0 : _f.send_all(JSON.stringify(result));
-                                (_g = client.match) === null || _g === void 0 ? void 0 : _g.SaveAllPlayerRes(iType.PacketID.SC_GAME_COMPUTE, false);
+                                (_h = client.match) === null || _h === void 0 ? void 0 : _h.send_all(JSON.stringify(result));
+                                (_j = client.match) === null || _j === void 0 ? void 0 : _j.SaveAllPlayerRes(iType.PacketID.SC_GAME_COMPUTE, false);
                                 console.log(`squares.length : ${squares.length}`);
                                 if (squares.length <= 0) {
-                                    let otherIdx = (_h = client.match.other(client)) === null || _h === void 0 ? void 0 : _h.userIdx;
+                                    let otherIdx = (_k = client.match.other(client)) === null || _k === void 0 ? void 0 : _k.userIdx;
                                     if (otherIdx != undefined) {
                                         client.match.nextTurn = otherIdx;
                                     }
@@ -135,33 +141,34 @@ class Server {
                         break;
                     case iType.PacketID.CS_GAME_COMPUTE:
                         client.packet_res.set(iType.PacketID.SC_GAME_COMPUTE, true);
-                        if ((_j = client.match) === null || _j === void 0 ? void 0 : _j.CheckAllPlayerRes(iType.PacketID.SC_GAME_COMPUTE)) {
-                            if (((_k = client.match) === null || _k === void 0 ? void 0 : _k.game.point_matrixes.length) == 9) {
-                                let winner = (_l = client.match) === null || _l === void 0 ? void 0 : _l.winner();
-                                let looser = (_m = client.match) === null || _m === void 0 ? void 0 : _m.other(winner);
+                        if ((_l = client.match) === null || _l === void 0 ? void 0 : _l.CheckAllPlayerRes(iType.PacketID.SC_GAME_COMPUTE)) {
+                            if (((_m = client.match) === null || _m === void 0 ? void 0 : _m.game.point_matrixes.length) == 9) {
+                                let winner = (_o = client.match) === null || _o === void 0 ? void 0 : _o.winner();
+                                let looser = (_p = client.match) === null || _p === void 0 ? void 0 : _p.other(winner);
                                 let ph = { num: iType.PacketID.SC_GAME_RESULT, size: 5 };
-                                let result = { ph: ph, winner: (_o = client.match) === null || _o === void 0 ? void 0 : _o.winner().userIdx, winner_point: (_p = client.match) === null || _p === void 0 ? void 0 : _p.winner().point, looser_point: looser === null || looser === void 0 ? void 0 : looser.point };
-                                console.log("SC_Game_Result sadasdasss");
-                                (_q = client.match) === null || _q === void 0 ? void 0 : _q.SaveAllPlayerRes(iType.PacketID.SC_GAME_RESULT, false);
-                                (_r = client.match) === null || _r === void 0 ? void 0 : _r.send_all(JSON.stringify(result));
+                                let result = { ph: ph, winner: (_q = client.match) === null || _q === void 0 ? void 0 : _q.winner().userIdx, winner_point: (_r = client.match) === null || _r === void 0 ? void 0 : _r.winner().point, looser_point: looser === null || looser === void 0 ? void 0 : looser.point };
+                                (_s = client.match) === null || _s === void 0 ? void 0 : _s.send_all(JSON.stringify(result));
+                                (_t = client.match) === null || _t === void 0 ? void 0 : _t.SaveAllPlayerRes(iType.PacketID.SC_GAME_RESULT, false);
                             }
                             else {
                                 client.match.turn = client.match.nextTurn;
                                 let ph2 = { num: iType.PacketID.SC_GAME_TURN, size: 5 };
                                 let result2 = { ph: ph2, userIdx: client.match.nextTurn };
-                                (_s = client.match) === null || _s === void 0 ? void 0 : _s.send_all(JSON.stringify(result2));
+                                (_u = client.match) === null || _u === void 0 ? void 0 : _u.send_all(JSON.stringify(result2));
                             }
                         }
                         break;
                     case iType.PacketID.CS_GAME_RESULT:
                         client.packet_res.set(iType.PacketID.SC_GAME_RESULT, true);
-                        if ((_t = client.match) === null || _t === void 0 ? void 0 : _t.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT)) {
+                        if ((_v = client.match) === null || _v === void 0 ? void 0 : _v.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT)) {
                             client.ready = false;
                             let other = client.match.other(client);
                             if (other != null)
                                 other.ready = false;
                             client.match.init();
                         }
+                        break;
+                    case iType.PacketID.CS_GAME_TIMER:
                         break;
                     default:
                         break;
@@ -170,10 +177,22 @@ class Server {
             //
             ws.on('close', () => {
                 if (this.Clients.has(userIdx)) {
+                    client.OnDisconnected();
+                    switch (client.status) {
+                        case Client_1.CStatus.Idle:
+                            break;
+                        case Client_1.CStatus.Searching:
+                            this.Match.players.delete(client.userIdx);
+                            break;
+                        case Client_1.CStatus.Playing:
+                            break;
+                        default:
+                            break;
+                    }
                     this.Clients.delete(userIdx);
                     console.log(`deleted idx : ${userIdx}`);
                 }
-                console.log(`WS Closed userIdx : ${userIdx}, Clients Size : ${this.Clients.size}, Match.players.length ${this.Match.players.length}`);
+                console.log(`WS Closed userIdx : ${userIdx}, Clients Size : ${this.Clients.size}, Match.players.length ${this.Match.players.size}`);
             });
         });
         this.wss.on('listening', () => {
@@ -181,25 +200,35 @@ class Server {
         });
     }
     EnterMatchQueue(client) {
-        this.Match.players.push(client);
-        if (this.Match.players.length >= 2) {
+        var _a;
+        this.Match.players.set(client.userIdx, client);
+        if (this.Match.players.size >= 2) {
             console.log(`this.Match.players.length >= 2`);
             let new_match = new Match_1.default();
-            new_match.players.push(this.Match.players[0]);
-            new_match.players.push(this.Match.players[1]);
-            this.Match.players[0].match = new_match;
-            this.Match.players[1].match = new_match;
+            for (const player of this.Match.players.values()) {
+                new_match.players.set(player.userIdx, player);
+                player.match = new_match;
+            }
             this.Matches.set(this.roomIdx++, new_match);
             let ph = { num: iType.PacketID.SC_SEARCHING_RESULT, size: 5 };
             let result = { ph: ph, result: 1 };
             new_match.send_all(JSON.stringify(result));
-            this.Match.players = [];
+            new_match.SaveAllPlayerRes(iType.PacketID.CS_GAME_ENTRY, false);
+            this.Match.players.clear();
+            if (client.match != null) {
+                client.match.SetTimer(1000, 5, iType.PacketID.CS_GAME_ENTRY);
+                (_a = client.match) === null || _a === void 0 ? void 0 : _a.init();
+                // state
+                client.status = Client_1.CStatus.Playing;
+                client.match.other(client).status = Client_1.CStatus.Playing;
+            }
         }
         else {
             let ph = { num: iType.PacketID.SC_SEARCHING_ENEMY, size: 5 };
             let result = { ph: ph };
             client.socket.send(JSON.stringify(result));
         }
+        //
     }
 }
 module.exports = new Server();

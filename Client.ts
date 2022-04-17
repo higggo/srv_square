@@ -16,6 +16,7 @@ export default class Client
     match : Match | null;
     ready : boolean
     point : number;
+    connect : boolean;
     packet_res = new Map<iType.PacketID, boolean>();
     
     constructor(userIdx : number, socket : any)
@@ -27,6 +28,7 @@ export default class Client
         this.match = null;
         this.ready = false;
         this.point = 0;
+        this.connect = false;
     }
     public game_init()
     {
@@ -34,5 +36,14 @@ export default class Client
         this.point = 0;
 
         this.packet_res.clear();
+    }
+
+    OnDisconnected()
+    {
+        this.connect = false;
+    }
+    OnConnected()
+    {
+        this.connect = true;
     }
 }
