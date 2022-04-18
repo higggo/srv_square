@@ -8,7 +8,6 @@ export default class Match
     public players : Map<number, Client>;
     public game : Game;
     public turn : number;
-    public nextTurn : number;
     // timer
     timer : Timer = new Timer();
     
@@ -18,7 +17,6 @@ export default class Match
         this.players = new Map<number, Client>();
         this.game = new Game();
         this.turn = 0;
-        this.nextTurn = 0;
     }
 
     init()
@@ -112,7 +110,11 @@ export default class Match
 
         for (const player of this.players.values())
         {
-            confirm = player.packet_res.get(packetID)!;
+            if( player.packet_res.get(packetID)! == false)
+            {
+                confirm = player.packet_res.get(packetID)!;
+                break;
+            }
         }
         return confirm;
     }

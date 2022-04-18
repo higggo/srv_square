@@ -2,9 +2,8 @@ import Client, { CStatus } from "./Client";
 import Match from "./Match";
 import * as iType from "./iType"
 import { matrix } from "./Game";
-
 //
-const webSocket = require('ws')
+const webSocket = require('ws');
 
 
 
@@ -49,20 +48,35 @@ class Server
             client.OnConnected();
             this.Clients.set(userIdx, client);
 
+            // send ping
+            let ph : iType.Head = {num : iType.PacketID.SC_PING, size : 5};
+            let ping : iType.SC_Ping = {ph : ph};
+            ws.send(JSON.stringify(ping));
+            client.pingCount++;
             
+            client.pingTimer = setInterval(()=>{
+                if(client.pingCount > 3)
+                {
+                    client.OnDisconnected();
+                }
+                else
+                {
+                    ws.send(JSON.stringify({ph :  {num : iType.PacketID.SC_PING, size : 5}}));
+                    client.pingCount++;
+                }
+            }, 3000);
+
             //
             ws.on('message', (data: string)=>{
                 //console.log('data received %o', data.toString())
                 const dataform = JSON.parse(data) as iType.DataForm;
                 if(dataform.ph.num != 1033)
                     console.log('ph : ' + JSON.stringify(dataform.ph));
-                
-                let ph : iType.Head = {num : iType.PacketID.SC_PING, size : 5}
-                let ping : iType.SC_Ping = {ph : ph}
                 switch(dataform.ph.num)
                 {
                     case iType.PacketID.CS_PING :
-                        ws.send(JSON.stringify(ping))
+                        client.pingCount = 0;
+
                         break;
                     case iType.PacketID.CS_SEARCHING_ENEMY :
                         //let ping : iType.SC_SEARCHING_ENEMY = {ph : ph}
@@ -157,9 +171,12 @@ class Server
                                 if(squares.length <= 0)
                                 {
                                     let otherIdx : number | undefined = client.match.other(client)?.userIdx;
+                                    console.log("squares.length <= 0");
+                                    
                                     if(otherIdx != undefined)
                                     {
-                                        client.match.nextTurn = otherIdx;
+                                        console.log(`client ${client.userIdx}, other ${otherIdx}`);
+                                        client.match.turn = otherIdx;
                                     }
                                 }
                             }
@@ -176,20 +193,21 @@ class Server
                                 let ph : iType.Head = {num : iType.PacketID.SC_GAME_RESULT, size : 5};
                                 let result : iType.SC_Game_Result = {ph : ph, winner : client.match?.winner().userIdx , winner_point : client.match?.winner().point, looser_point : looser?.point};
                                 
-                                client.match?.send_all(JSON.stringify(result));
                                 client.match?.SaveAllPlayerRes(iType.PacketID.SC_GAME_RESULT, false);
+                                client.match?.send_all(JSON.stringify(result));
                             }
                             else
                             {
-                                client.match.turn = client.match.nextTurn;
                                 let ph2 : iType.Head = {num : iType.PacketID.SC_GAME_TURN, size : 5};
-                                let result2 : iType.SC_Game_Turn = {ph : ph2, userIdx : client.match.nextTurn};
+                                let result2 : iType.SC_Game_Turn = {ph : ph2, userIdx : client.match.turn};
                                 client.match?.send_all(JSON.stringify(result2));
                             }
                         }
                     break;
                     case iType.PacketID.CS_GAME_RESULT:
                         client.packet_res.set(iType.PacketID.SC_GAME_RESULT, true);
+                        console.log(`chk : ${client.match?.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT)}, client ${client.userIdx}: ${client.packet_res.get(iType.PacketID.SC_GAME_RESULT)}`);
+                        
                         if(client.match?.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT))
                         {
                             client.ready = false;
@@ -214,6 +232,7 @@ class Server
                     switch(client.status)
                     {
                         case CStatus.Idle:
+                            this.Clients.delete(client.userIdx);
                             break;
                         case CStatus.Searching:
                             this.Match.players.delete(client.userIdx);
@@ -223,8 +242,6 @@ class Server
                         default :
                             break;
                     }
-                    this.Clients.delete(userIdx);
-                    console.log(`deleted idx : ${userIdx}`);
                 }
                 console.log(`WS Closed userIdx : ${userIdx}, Clients Size : ${this.Clients.size}, Match.players.length ${this.Match.players.size}`);
             })

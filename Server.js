@@ -1,7 +1,11 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -50,18 +54,30 @@ class Server {
             let client = new Client_1.default(userIdx, ws);
             client.OnConnected();
             this.Clients.set(userIdx, client);
+            // send ping
+            let ph = { num: iType.PacketID.SC_PING, size: 5 };
+            let ping = { ph: ph };
+            ws.send(JSON.stringify(ping));
+            client.pingCount++;
+            client.pingTimer = setInterval(() => {
+                if (client.pingCount > 3) {
+                    client.OnDisconnected();
+                }
+                else {
+                    ws.send(JSON.stringify({ ph: { num: iType.PacketID.SC_PING, size: 5 } }));
+                    client.pingCount++;
+                }
+            }, 3000);
             //
             ws.on('message', (data) => {
-                var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v;
+                var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w;
                 //console.log('data received %o', data.toString())
                 const dataform = JSON.parse(data);
                 if (dataform.ph.num != 1033)
                     console.log('ph : ' + JSON.stringify(dataform.ph));
-                let ph = { num: iType.PacketID.SC_PING, size: 5 };
-                let ping = { ph: ph };
                 switch (dataform.ph.num) {
                     case iType.PacketID.CS_PING:
-                        ws.send(JSON.stringify(ping));
+                        client.pingCount = 0;
                         break;
                     case iType.PacketID.CS_SEARCHING_ENEMY:
                         //let ping : iType.SC_SEARCHING_ENEMY = {ph : ph}
@@ -132,8 +148,10 @@ class Server {
                                 console.log(`squares.length : ${squares.length}`);
                                 if (squares.length <= 0) {
                                     let otherIdx = (_k = client.match.other(client)) === null || _k === void 0 ? void 0 : _k.userIdx;
+                                    console.log("squares.length <= 0");
                                     if (otherIdx != undefined) {
-                                        client.match.nextTurn = otherIdx;
+                                        console.log(`client ${client.userIdx}, other ${otherIdx}`);
+                                        client.match.turn = otherIdx;
                                     }
                                 }
                             }
@@ -147,20 +165,20 @@ class Server {
                                 let looser = (_p = client.match) === null || _p === void 0 ? void 0 : _p.other(winner);
                                 let ph = { num: iType.PacketID.SC_GAME_RESULT, size: 5 };
                                 let result = { ph: ph, winner: (_q = client.match) === null || _q === void 0 ? void 0 : _q.winner().userIdx, winner_point: (_r = client.match) === null || _r === void 0 ? void 0 : _r.winner().point, looser_point: looser === null || looser === void 0 ? void 0 : looser.point };
-                                (_s = client.match) === null || _s === void 0 ? void 0 : _s.send_all(JSON.stringify(result));
-                                (_t = client.match) === null || _t === void 0 ? void 0 : _t.SaveAllPlayerRes(iType.PacketID.SC_GAME_RESULT, false);
+                                (_s = client.match) === null || _s === void 0 ? void 0 : _s.SaveAllPlayerRes(iType.PacketID.SC_GAME_RESULT, false);
+                                (_t = client.match) === null || _t === void 0 ? void 0 : _t.send_all(JSON.stringify(result));
                             }
                             else {
-                                client.match.turn = client.match.nextTurn;
                                 let ph2 = { num: iType.PacketID.SC_GAME_TURN, size: 5 };
-                                let result2 = { ph: ph2, userIdx: client.match.nextTurn };
+                                let result2 = { ph: ph2, userIdx: client.match.turn };
                                 (_u = client.match) === null || _u === void 0 ? void 0 : _u.send_all(JSON.stringify(result2));
                             }
                         }
                         break;
                     case iType.PacketID.CS_GAME_RESULT:
                         client.packet_res.set(iType.PacketID.SC_GAME_RESULT, true);
-                        if ((_v = client.match) === null || _v === void 0 ? void 0 : _v.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT)) {
+                        console.log(`chk : ${(_v = client.match) === null || _v === void 0 ? void 0 : _v.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT)}, client ${client.userIdx}: ${client.packet_res.get(iType.PacketID.SC_GAME_RESULT)}`);
+                        if ((_w = client.match) === null || _w === void 0 ? void 0 : _w.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT)) {
                             client.ready = false;
                             let other = client.match.other(client);
                             if (other != null)
@@ -180,6 +198,7 @@ class Server {
                     client.OnDisconnected();
                     switch (client.status) {
                         case Client_1.CStatus.Idle:
+                            this.Clients.delete(client.userIdx);
                             break;
                         case Client_1.CStatus.Searching:
                             this.Match.players.delete(client.userIdx);
@@ -189,8 +208,6 @@ class Server {
                         default:
                             break;
                     }
-                    this.Clients.delete(userIdx);
-                    console.log(`deleted idx : ${userIdx}`);
                 }
                 console.log(`WS Closed userIdx : ${userIdx}, Clients Size : ${this.Clients.size}, Match.players.length ${this.Match.players.size}`);
             });
