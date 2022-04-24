@@ -2,6 +2,7 @@ import Client, { CStatus } from "./Client";
 import Match from "./Match";
 import * as iType from "./iType"
 import { matrix } from "./Game";
+import { EndOfLineState } from "typescript";
 //
 const webSocket = require('ws');
 
@@ -108,9 +109,9 @@ class Server
                     case iType.PacketID.CS_GAME_ENTRY:
                         client.packet_res.set(iType.PacketID.CS_GAME_ENTRY, true);
 
-                    let ph : iType.Head = {num : iType.PacketID.SC_GAME_ENTRY, size : 5};
-                    let result : iType.SC_Game_Entry = {ph : ph};
-                    client.match?.send(client, JSON.stringify(result));
+                        let ph : iType.Head = {num : iType.PacketID.SC_GAME_ENTRY, size : 5};
+                        let result : iType.SC_Game_Entry = {ph : ph};
+                        client.match?.send(client, JSON.stringify(result));
                         if(client.match?.CheckAllPlayerRes(iType.PacketID.CS_GAME_ENTRY))
                         {
                             client.match.timer.Clear();
@@ -132,26 +133,34 @@ class Server
 
                         if(client.match?.all_ready())
                         {
-                            client.match?.init();
-
-                            let ph1 : iType.Head = {num : iType.PacketID.SC_GAME_START, size : 5};
-                            let result1 : iType.SC_Game_Start;
-                            client.match.players.forEach(player => {
-                                result1 = {ph : ph1, userIdx : player.userIdx};
-                                player.socket.send(JSON.stringify(result1));
-                            });
-
+                            client.match?.MatchInit();
+                            let match : Match = client.match;
                             
+                            let ph : iType.Head = {num : iType.PacketID.SC_GAME_START, size : 5};
+                            let result : iType.SC_Game_Start;
+                            if(match != undefined)
+                            {
+                                client.match.players.forEach(player => {
+                                    result = {
+                                        ph : ph,
+                                        userIdx : player.userIdx,
+                                        match : match.CurrentMatchRecord().match_count,
+                                        round : match.CurrentMatchRecord().match.Round
+                                        };
+                                    player.socket.send(JSON.stringify(result));
+                                });
+                            }
                         }
                         break;
 
                     case iType.PacketID.CS_GAME_START:
                         if(client.match != null)
                         {
+                            client.match.RoundInit();
                             client.match.turn = client.userIdx;
-                            let ph2 : iType.Head = {num : iType.PacketID.SC_GAME_TURN, size : 5};
-                            let result2 : iType.SC_Game_Turn = {ph : ph2, userIdx : client.match.turn};
-                            client.match?.send_all(JSON.stringify(result2));
+                            let ph : iType.Head = {num : iType.PacketID.SC_GAME_TURN, size : 5};
+                            let result : iType.SC_Game_Turn = {ph : ph, userIdx : client.match.turn};
+                            client.match?.send_all(JSON.stringify(result));
                         }
                         break;
                     case iType.PacketID.CS_GAME_SELECT:
@@ -192,15 +201,15 @@ class Server
                                 let looser : any = client.match?.other(winner);
                                 let ph : iType.Head = {num : iType.PacketID.SC_GAME_RESULT, size : 5};
                                 let result : iType.SC_Game_Result = {ph : ph, winner : client.match?.winner().userIdx , winner_point : client.match?.winner().point, looser_point : looser?.point};
-                                
+                                client.match?.RecordUpdate(winner.userIdx, looser.userIdx);
                                 client.match?.SaveAllPlayerRes(iType.PacketID.SC_GAME_RESULT, false);
                                 client.match?.send_all(JSON.stringify(result));
                             }
                             else
                             {
-                                let ph2 : iType.Head = {num : iType.PacketID.SC_GAME_TURN, size : 5};
-                                let result2 : iType.SC_Game_Turn = {ph : ph2, userIdx : client.match.turn};
-                                client.match?.send_all(JSON.stringify(result2));
+                                let ph : iType.Head = {num : iType.PacketID.SC_GAME_TURN, size : 5};
+                                let result : iType.SC_Game_Turn = {ph : ph, userIdx : client.match.turn};
+                                client.match?.send_all(JSON.stringify(result));
                             }
                         }
                     break;
@@ -213,8 +222,44 @@ class Server
                             client.ready = false;
                             let other = client.match.other(client);
                             if(other != null) other.ready = false;
-
-                            client.match.init();
+                            
+                            if(client.match.CurrentMatchRecord().match.End)
+                            {
+                                client.match.match_record.push({
+                                    R1 : {winner : 0, looser : 0},
+                                    R2 : {winner : 0, looser : 0},
+                                    R3 : {winner : 0, looser : 0},
+                                    End : false,
+                                    Round : 1,
+                                    Winner : 0
+                                });
+                                let ph : iType.Head = {num : iType.PacketID.SC_GAME_READY, size : 5};
+                                let result : iType.SC_Game_Ready = {ph : ph, ready : false};
+                                if(client.match != null)
+                                {
+                                    client.match.send_all(JSON.stringify(result));
+                                }
+                            }
+                            else
+                            {
+                                let ph : iType.Head = {num : iType.PacketID.SC_GAME_START, size : 5};
+                                let result : iType.SC_Game_Start;
+                                let match = client.match;
+                                if(match != undefined)
+                                {
+                                    client.match.players.forEach(player => {
+                                        console.log("useridx : " + player.userIdx);
+                                        
+                                        result = {
+                                            ph : ph,
+                                            userIdx : player.userIdx,
+                                            match : match.CurrentMatchRecord().match_count,
+                                            round : match.CurrentMatchRecord().match.Round
+                                        };
+                                        player.socket.send(JSON.stringify(result));
+                                    });
+                                }
+                            }
                         }
                         break;
                     case iType.PacketID.CS_GAME_TIMER:
@@ -277,7 +322,7 @@ class Server
             if(client.match != null)
             {
                 client.match.SetTimer(1000, 5, iType.PacketID.CS_GAME_ENTRY);
-                client.match?.init();
+                client.match?.RoomInit();
 
                 // state
                 client.status = CStatus.Playing;

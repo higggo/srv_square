@@ -68,6 +68,8 @@ export interface SC_Game_Start
 {
     ph : Head
     userIdx : number
+    match : number
+    round : number
 }
 
 export interface SC_Game_Compute

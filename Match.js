@@ -1,11 +1,7 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -37,13 +33,34 @@ class Match {
         this.players = new Map();
         this.game = new Game_1.default();
         this.turn = 0;
+        this.match_record = new Array();
+        this.match_record.push({
+            R1: { winner: 0, looser: 0 },
+            R2: { winner: 0, looser: 0 },
+            R3: { winner: 0, looser: 0 },
+            End: false,
+            Round: 1,
+            Winner: 0
+        });
     }
-    init() {
-        this.game.Init();
+    RoomInit() {
         this.players.forEach(player => {
-            player.game_init();
+            player.ready = false;
+            player.point = 0;
+            player.packet_res.clear();
         });
         this.timer.SetCallback(() => { this.TimerEnd(); }, () => { this.SendTimer(); });
+    }
+    MatchInit() {
+        this.players.forEach(player => {
+            player.ready = false;
+        });
+    }
+    RoundInit() {
+        this.game.Init();
+        this.players.forEach(player => {
+            player.point = 0;
+        });
     }
     start() {
     }
@@ -140,6 +157,34 @@ class Match {
             default:
                 break;
         }
+    }
+    RecordUpdate(winner, looser) {
+        const lastIdx = this.match_record.length - 1;
+        if (this.match_record[lastIdx].Round == 1) {
+            this.match_record[lastIdx].R1 = { winner: winner, looser: looser };
+            this.match_record[lastIdx].Round++;
+        }
+        else if (this.match_record[lastIdx].Round == 2) {
+            this.match_record[lastIdx].R2 = { winner: winner, looser: looser };
+            if (this.match_record[lastIdx].R1.winner == winner) {
+                this.match_record[lastIdx].End = true;
+                this.match_record[lastIdx].Winner = winner;
+            }
+            else {
+                this.match_record[lastIdx].Round++;
+            }
+        }
+        else if (this.match_record[lastIdx].Round == 3) {
+            this.match_record[lastIdx].R3 = { winner: winner, looser: looser };
+            this.match_record[lastIdx].End = true;
+            this.match_record[lastIdx].Winner = winner;
+        }
+    }
+    CurrentMatchRecord() {
+        const lastIdx = this.match_record.length - 1;
+        let record = this.match_record[lastIdx];
+        let cnt = lastIdx + 1;
+        return { match: record, match_count: cnt };
     }
 }
 exports.default = Match;

@@ -32,14 +32,7 @@ export default class Client
         this.point = 0;
         this.connect = false;
     }
-    public game_init()
-    {
-        this.ready = false;
-        this.point = 0;
-
-        this.packet_res.clear();
-    }
-
+    
     OnDisconnected()
     {
         this.connect = false;
