@@ -2,7 +2,7 @@ import Client, { CStatus } from "./Client";
 import Match from "./Match";
 import * as iType from "./iType"
 import { matrix } from "./Game";
-import { EndOfLineState } from "typescript";
+import COREPROCESS from "./COREPROCESS";
 //
 const webSocket = require('ws');
 
@@ -26,6 +26,8 @@ class Server
 
     roomIdx : number = 0;
 
+    process: COREPROCESS = new COREPROCESS();
+
 
     constructor()
     {
@@ -48,6 +50,8 @@ class Server
             let client : Client = new Client(userIdx, ws);
             client.OnConnected();
             this.Clients.set(userIdx, client);
+
+            let match : Match | null;
 
             // send ping
             let ph : iType.Head = {num : iType.PacketID.SC_PING, size : 5};
@@ -107,109 +111,65 @@ class Server
                         break;
 
                     case iType.PacketID.CS_GAME_ENTRY:
-                        client.packet_res.set(iType.PacketID.CS_GAME_ENTRY, true);
-
-                        let ph : iType.Head = {num : iType.PacketID.SC_GAME_ENTRY, size : 5};
-                        let result : iType.SC_Game_Entry = {ph : ph};
-                        client.match?.send(client, JSON.stringify(result));
-                        if(client.match?.CheckAllPlayerRes(iType.PacketID.CS_GAME_ENTRY))
-                        {
-                            client.match.timer.Clear();
-                        }
-
-                        
+                        match = client.match;
+                        if(match != undefined)
+                            this.process.SC_SEARCHING_ENEMY(client, match);
+                        else
+                            console.error("match가 존재하지 않음.");
                         break;
                     case iType.PacketID.CS_GAME_READY:
-                        const cs_game_ready = JSON.parse(data) as iType.CS_Game_Ready;
-                        client.ready = cs_game_ready.ready;
-
-                        let ph2 : iType.Head = {num : iType.PacketID.SC_GAME_READY, size : 5};
-                        let result2 : iType.SC_Game_Ready;
-                        if(client.match != null)
+                        match = client.match;
+                        if(match != undefined)
                         {
-                            result2 = {ph : ph2, ready : cs_game_ready.ready};
-                            client.socket.send(JSON.stringify(result2));
-                        }
-
-                        if(client.match?.all_ready())
-                        {
-                            client.match?.MatchInit();
-                            let match : Match = client.match;
-                            
-                            let ph : iType.Head = {num : iType.PacketID.SC_GAME_START, size : 5};
-                            let result : iType.SC_Game_Start;
-                            if(match != undefined)
+                            const cs_game_ready = JSON.parse(data) as iType.CS_Game_Ready;
+                            client.ready = cs_game_ready.ready;
+                            if(match.all_ready())
                             {
-                                client.match.players.forEach(player => {
-                                    result = {
-                                        ph : ph,
-                                        userIdx : player.userIdx,
-                                        match : match.CurrentMatchRecord().match_count,
-                                        round : match.CurrentMatchRecord().match.Round
-                                        };
-                                    player.socket.send(JSON.stringify(result));
-                                });
-                            }
-                        }
-                        break;
-
-                    case iType.PacketID.CS_GAME_START:
-                        if(client.match != null)
-                        {
-                            client.match.RoundInit();
-                            client.match.turn = client.userIdx;
-                            let ph : iType.Head = {num : iType.PacketID.SC_GAME_TURN, size : 5};
-                            let result : iType.SC_Game_Turn = {ph : ph, userIdx : client.match.turn};
-                            client.match?.send_all(JSON.stringify(result));
-                        }
-                        break;
-                    case iType.PacketID.CS_GAME_SELECT:
-                        if(client.match?.turn == client.userIdx)
-                        {
-                            const cs_game_select = JSON.parse(data) as iType.CS_Game_Select;
-                            if(client.match.game.ActiveBar(cs_game_select.bar))
-                            {
-                                let squares : matrix[] = client.match?.game.CheckSquare(cs_game_select.bar);
-                                client.point += squares.length;
-                                let ph : iType.Head = {num : iType.PacketID.SC_GAME_COMPUTE, size : 5};
-                                let result : iType.SC_Game_Compute = {ph : ph, bar : cs_game_select.bar, userIdx : client.userIdx, matrixes : squares};
-                                client.match?.send_all(JSON.stringify(result));
-                                client.match?.SaveAllPlayerRes(iType.PacketID.SC_GAME_COMPUTE, false);
-    
-                                console.log(`squares.length : ${squares.length}`);
-                                if(squares.length <= 0)
-                                {
-                                    let otherIdx : number | undefined = client.match.other(client)?.userIdx;
-                                    console.log("squares.length <= 0");
-                                    
-                                    if(otherIdx != undefined)
-                                    {
-                                        console.log(`client ${client.userIdx}, other ${otherIdx}`);
-                                        client.match.turn = otherIdx;
-                                    }
-                                }
-                            }
-                        }
-                        break;
-                    case iType.PacketID.CS_GAME_COMPUTE:
-                        client.packet_res.set(iType.PacketID.SC_GAME_COMPUTE, true);
-                        if(client.match?.CheckAllPlayerRes(iType.PacketID.SC_GAME_COMPUTE))
-                        {
-                            if(client.match?.game.point_matrixes.length == 9)
-                            {
-                                let winner = client.match?.winner();
-                                let looser : any = client.match?.other(winner);
-                                let ph : iType.Head = {num : iType.PacketID.SC_GAME_RESULT, size : 5};
-                                let result : iType.SC_Game_Result = {ph : ph, winner : client.match?.winner().userIdx , winner_point : client.match?.winner().point, looser_point : looser?.point};
-                                client.match?.RecordUpdate(winner.userIdx, looser.userIdx);
-                                client.match?.SaveAllPlayerRes(iType.PacketID.SC_GAME_RESULT, false);
-                                client.match?.send_all(JSON.stringify(result));
+                                this.process.SC_GAME_START(client, match);
                             }
                             else
                             {
-                                let ph : iType.Head = {num : iType.PacketID.SC_GAME_TURN, size : 5};
-                                let result : iType.SC_Game_Turn = {ph : ph, userIdx : client.match.turn};
-                                client.match?.send_all(JSON.stringify(result));
+                                this.process.SC_GAME_READY(client, match, data);
+                            }
+                        }
+                        else
+                            console.error("match가 존재하지 않음.");
+                        break;
+
+                    case iType.PacketID.CS_GAME_START:
+                        match = client.match;
+                        if(match != undefined)
+                        {
+                            match.RoundInit();
+                            match.turn = client.userIdx;
+                            this.process.SC_GAME_TURN(client, match);
+                        }
+                        else
+                            console.error("match가 존재하지 않음.");
+                        break;
+                    case iType.PacketID.CS_GAME_SELECT:
+                        if(client.match != undefined)
+                        {
+                            this.process.SC_GAME_COMPUTE(client, client.match, data);
+                        }
+                        else
+                            console.error("match가 존재하지 않음.");
+                        break;
+                    case iType.PacketID.CS_GAME_COMPUTE:
+                        match = client.match;
+                        if(match != undefined)
+                        {
+                            client.packet_res.set(iType.PacketID.SC_GAME_COMPUTE, true);
+                            if(match.CheckAllPlayerRes(iType.PacketID.SC_GAME_COMPUTE))
+                            {
+                                if(match.game.point_matrixes.length == 9)
+                                {
+                                    this.process.SC_GAME_RESULT(client, match);
+                                }
+                                else
+                                {
+                                    this.process.SC_GAME_TURN(client, match);
+                                }
                             }
                         }
                     break;
