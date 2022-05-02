@@ -111,121 +111,36 @@ class Server
                         break;
 
                     case iType.PacketID.CS_GAME_ENTRY:
-                        match = client.match;
-                        if(match != undefined)
-                            this.process.SC_SEARCHING_ENEMY(client, match);
-                        else
-                            console.error("match가 존재하지 않음.");
+                        this.process.RECIEVE_CS_GAME_ENTRY(client, data);
+                        
                         break;
+
                     case iType.PacketID.CS_GAME_READY:
-                        match = client.match;
-                        if(match != undefined)
-                        {
-                            const cs_game_ready = JSON.parse(data) as iType.CS_Game_Ready;
-                            client.ready = cs_game_ready.ready;
-                            if(match.all_ready())
-                            {
-                                this.process.SC_GAME_START(client, match);
-                            }
-                            else
-                            {
-                                this.process.SC_GAME_READY(client, match, data);
-                            }
-                        }
-                        else
-                            console.error("match가 존재하지 않음.");
+                        this.process.RECIEVE_CS_GAME_READY(client, data);
                         break;
 
                     case iType.PacketID.CS_GAME_START:
-                        match = client.match;
-                        if(match != undefined)
-                        {
-                            match.RoundInit();
-                            match.turn = client.userIdx;
-                            this.process.SC_GAME_TURN(client, match);
-                        }
-                        else
-                            console.error("match가 존재하지 않음.");
+                        this.process.RECIEVE_CS_GAME_START(client, data);
                         break;
+
                     case iType.PacketID.CS_GAME_SELECT:
-                        if(client.match != undefined)
-                        {
-                            this.process.SC_GAME_COMPUTE(client, client.match, data);
-                        }
-                        else
-                            console.error("match가 존재하지 않음.");
+                        this.process.RECIEVE_CS_GAME_SELECT(client, data);
                         break;
+
                     case iType.PacketID.CS_GAME_COMPUTE:
-                        match = client.match;
-                        if(match != undefined)
-                        {
-                            client.packet_res.set(iType.PacketID.SC_GAME_COMPUTE, true);
-                            if(match.CheckAllPlayerRes(iType.PacketID.SC_GAME_COMPUTE))
-                            {
-                                if(match.game.point_matrixes.length == 9)
-                                {
-                                    this.process.SC_GAME_RESULT(client, match);
-                                }
-                                else
-                                {
-                                    this.process.SC_GAME_TURN(client, match);
-                                }
-                            }
-                        }
-                    break;
-                    case iType.PacketID.CS_GAME_RESULT:
-                        client.packet_res.set(iType.PacketID.SC_GAME_RESULT, true);
-                        console.log(`chk : ${client.match?.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT)}, client ${client.userIdx}: ${client.packet_res.get(iType.PacketID.SC_GAME_RESULT)}`);
-                        
-                        if(client.match?.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT))
-                        {
-                            client.ready = false;
-                            let other = client.match.other(client);
-                            if(other != null) other.ready = false;
-                            
-                            if(client.match.CurrentMatchRecord().match.End)
-                            {
-                                client.match.match_record.push({
-                                    R1 : {winner : 0, looser : 0},
-                                    R2 : {winner : 0, looser : 0},
-                                    R3 : {winner : 0, looser : 0},
-                                    End : false,
-                                    Round : 1,
-                                    Winner : 0
-                                });
-                                let ph : iType.Head = {num : iType.PacketID.SC_GAME_READY, size : 5};
-                                let result : iType.SC_Game_Ready = {ph : ph, ready : false};
-                                if(client.match != null)
-                                {
-                                    client.match.send_all(JSON.stringify(result));
-                                }
-                            }
-                            else
-                            {
-                                let ph : iType.Head = {num : iType.PacketID.SC_GAME_START, size : 5};
-                                let result : iType.SC_Game_Start;
-                                let match = client.match;
-                                if(match != undefined)
-                                {
-                                    client.match.players.forEach(player => {
-                                        console.log("useridx : " + player.userIdx);
-                                        
-                                        result = {
-                                            ph : ph,
-                                            userIdx : player.userIdx,
-                                            match : match.CurrentMatchRecord().match_count,
-                                            round : match.CurrentMatchRecord().match.Round
-                                        };
-                                        player.socket.send(JSON.stringify(result));
-                                    });
-                                }
-                            }
-                        }
+                        this.process.RECIEVE_CS_GAME_COMPUTE(client, data);
                         break;
+
+                    case iType.PacketID.CS_GAME_RESULT:
+                        this.process.RECIEVE_CS_GAME_RESULT(client, data);
+                        break;
+
                     case iType.PacketID.CS_GAME_TIMER:
                         break;
+
                     default:
                         break;
+
                 }
             })
             

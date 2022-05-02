@@ -35,7 +35,153 @@ import { matrix } from "./Game";
 */
 export default class COREPROCESS
 {
-    SC_SEARCHING_ENEMY(client : Client, match : Match, data? : string)
+    RECIEVE_CS_PING(client : Client, data : string)
+    {
+        
+    }
+    RECIEVE_CS_SEARCHING_ENEMY(client : Client, data : string)
+    {
+        
+    }
+    RECIEVE_CS_SEARCHING_RESULT(client : Client, data : string)
+    {
+        
+    }
+    RECIEVE_CS_SEARCHING_CANCEL(client : Client, data : string)
+    {
+        
+    }
+    RECIEVE_CS_GAME_READY(client : Client, data : string)
+    {
+        let match : Match | null = client.match;
+        if(match != null)
+        {
+            const cs_game_ready = JSON.parse(data) as iType.CS_Game_Ready;
+            client.ready = cs_game_ready.ready;
+            if(match.all_ready())
+            {
+                this.SEND_SC_GAME_START(client, match);
+            }
+            else
+            {
+                this.SEND_SC_GAME_READY(client, match, data);
+            }
+        }
+        else
+        {
+            console.error("match가 존재하지 않음.");
+        }
+    }
+    RECIEVE_CS_GAME_START(client : Client, data : string)
+    {
+        let match : Match | null = client.match;
+        if(match != null)
+        {
+            match.RoundInit();
+            match.turn = client.userIdx;
+            this.SEND_SC_GAME_TURN(client, match);
+        }
+        else
+        {
+            console.error("match가 존재하지 않음.");
+        }
+    }
+    RECIEVE_CS_GAME_COMPUTE(client : Client, data : string)
+    {
+        let match : Match | null = client.match;
+        if(match != undefined)
+        {
+            client.packet_res.set(iType.PacketID.SC_GAME_COMPUTE, true);
+            if(match.CheckAllPlayerRes(iType.PacketID.SC_GAME_COMPUTE))
+            {
+                if(match.game.point_matrixes.length == 9)
+                {
+                    this.SEND_SC_GAME_RESULT(client, match);
+                }
+                else
+                {
+                    this.SEND_SC_GAME_TURN(client, match);
+                }
+            }
+        }
+        
+    }
+    RECIEVE_CS_GAME_TURN(client : Client, data : string)
+    {
+        
+    }
+    RECIEVE_CS_GAME_SELECT(client : Client, data : string)
+    {
+        let match : Match | null = client.match;
+        if(match != null)
+        {
+            this.SEND_SC_GAME_COMPUTE(client, match, data);
+        }
+        else
+        {
+            console.error("match가 존재하지 않음.");
+        }
+    }
+    RECIEVE_CS_GAME_RESULT(client : Client, data : string)
+    {
+        client.packet_res.set(iType.PacketID.SC_GAME_RESULT, true);
+        console.log(`chk : ${client.match?.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT)}, client ${client.userIdx}: ${client.packet_res.get(iType.PacketID.SC_GAME_RESULT)}`);
+        
+        let match : Match | null = client.match;
+        if(match?.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT))
+        {
+            client.ready = false;
+            let other = match.other(client);
+            if(other != null) other.ready = false;
+            
+            if(match.CurrentMatchRecord().match.End)
+            {
+                match.match_record.push({
+                    R1 : {winner : 0, looser : 0},
+                    R2 : {winner : 0, looser : 0},
+                    R3 : {winner : 0, looser : 0},
+                    End : false,
+                    Round : 1,
+                    Winner : 0
+                });
+                let ph : iType.Head = {num : iType.PacketID.SC_GAME_READY, size : 5};
+                let result : iType.SC_Game_Ready = {ph : ph, ready : false};
+                match.send_all(JSON.stringify(result));
+            }
+            else
+            {
+                let ph : iType.Head = {num : iType.PacketID.SC_GAME_START, size : 5};
+                let result : iType.SC_Game_Start;
+                match.players.forEach(player => {
+                    console.log("useridx : " + player.userIdx);
+                    if(match != null)
+                    {
+                        result = {
+                            ph : ph,
+                            userIdx : player.userIdx,
+                            match : match.CurrentMatchRecord().match_count,
+                            round : match.CurrentMatchRecord().match.Round
+                        };
+                        player.socket.send(JSON.stringify(result));
+                    }
+                });
+            }
+        }
+        
+    }
+    RECIEVE_CS_GAME_OUT(client : Client, data : string)
+    {
+        
+    }
+    RECIEVE_CS_GAME_TIMER(client : Client, data : string)
+    {
+        
+    }
+    RECIEVE_CS_GAME_ENTRY(client : Client, data : string)
+    {
+        
+    }
+    SEND_SC_SEARCHING_ENEMY(client : Client, match : Match, data? : string)
     {
         client.packet_res.set(iType.PacketID.CS_GAME_ENTRY, true);
 
@@ -47,15 +193,15 @@ export default class COREPROCESS
         let result : iType.SC_Game_Entry = {ph : ph};
         match.send(client, JSON.stringify(result));
     }
-    SC_SEARCHING_RESULT(client : Client, match : Match, data? : string)
+    SEND_SC_SEARCHING_RESULT(client : Client, match : Match, data? : string)
     {
         
     }
-    SC_SEARCHING_CANCEL(client : Client, match : Match, data? : string)
+    SEND_SC_SEARCHING_CANCEL(client : Client, match : Match, data? : string)
     {
         
     }
-    SC_GAME_READY(client : Client, match : Match, data? : string)
+    SEND_SC_GAME_READY(client : Client, match : Match, data? : string)
     {
         if(data != undefined)
         {
@@ -71,7 +217,7 @@ export default class COREPROCESS
             console.error("SC_GAME_READY data undefined");
         }
     }
-    SC_GAME_START(client : Client, match : Match, data? : string)
+    SEND_SC_GAME_START(client : Client, match : Match, data? : string)
     {
         match.MatchInit();
 
@@ -87,7 +233,7 @@ export default class COREPROCESS
             player.socket.send(JSON.stringify(result));
         });
     }
-    SC_GAME_COMPUTE(client : Client, match : Match, data : string)
+    SEND_SC_GAME_COMPUTE(client : Client, match : Match, data : string)
     {
         if(match.turn == client.userIdx)
         {
@@ -117,18 +263,18 @@ export default class COREPROCESS
         }
         
     }
-    SC_GAME_TURN(client : Client, match : Match, data? : string)
+    SEND_SC_GAME_TURN(client : Client, match : Match, data? : string)
     {
         let ph : iType.Head = {num : iType.PacketID.SC_GAME_TURN, size : 5};
         let result : iType.SC_Game_Turn = {ph : ph, userIdx : match.turn};
         match.send_all(JSON.stringify(result));
         
     }
-    SC_GAME_SELECT(client : Client, match : Match, data? : string)
+    SEND_SC_GAME_SELECT(client : Client, match : Match, data? : string)
     {
         
     }
-    SC_GAME_RESULT(client : Client, match : Match, data? : string)
+    SEND_SC_GAME_RESULT(client : Client, match : Match, data? : string)
     {
         let winner : Client = match.winner();
         let looser : Client = match.other(winner);
@@ -143,16 +289,18 @@ export default class COREPROCESS
         match.SaveAllPlayerRes(iType.PacketID.SC_GAME_RESULT, false);
         match.send_all(JSON.stringify(result));
     }
-    SC_GAME_OUT(client : Client, match : Match, data? : string)
+    SEND_SC_GAME_OUT(client : Client, match : Match, data? : string)
     {
         
     }
-    SC_GAME_TIMER(client : Client, match : Match, data? : string)
+    SEND_SC_GAME_TIMER(client : Client, match : Match, data? : string)
     {
         
     }
-    SC_GAME_ENTRY(client : Client, match : Match, data? : string)
+    SEND_SC_GAME_ENTRY(client : Client, match : Match, data? : string)
     {
         
     }
+
+
 }
