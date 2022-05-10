@@ -38,14 +38,6 @@ export default class Match
         this.game = new Game();
         this.turn = 0;
         this.match_record = new Array<MatchRecord>();
-        this.match_record.push({
-            R1 : {winner : 0, looser : 0},
-            R2 : {winner : 0, looser : 0},
-            R3 : {winner : 0, looser : 0},
-            End : false,
-            Round : 1,
-            Winner : 0
-        });
     }
 
     RoomInit()

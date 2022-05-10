@@ -1,7 +1,6 @@
 import Client, { CStatus } from "./Client";
 import Match from "./Match";
 import * as iType from "./iType"
-import { matrix } from "./Game";
 import COREPROCESS from "./COREPROCESS";
 //
 const webSocket = require('ws');
@@ -80,43 +79,27 @@ class Server
                 switch(dataform.ph.num)
                 {
                     case iType.PacketID.CS_PING :
-                        client.pingCount = 0;
-
+                        this.process.RECIEVE_CS_PING(client, data);
                         break;
-                    case iType.PacketID.CS_SEARCHING_ENEMY :
-                        //let ping : iType.SC_SEARCHING_ENEMY = {ph : ph}
-                        const dataform = JSON.parse(data) as iType.CS_Searching_Enemy;
-                        console.log(dataform);
-                        console.log(`Match.players.length ${this.Match.players.size}`);
 
-                        if(client.status == CStatus.Idle) 
-                        {
-                            this.EnterMatchQueue(client);
-                        }
-                        client.status = CStatus.Searching;
+                    case iType.PacketID.CS_LOBBY_SEARCHING_ENEMY :
+                        this.process.RECIEVE_CS_LOBBY_SEARCHING_ENEMY(client, data);
                         break;
                         
-                    case iType.PacketID.CS_SEARCHING_CANCEL :
-                        for (const [idx, player] of this.Match.players) 
-                        {
-                            if(player.userIdx == client.userIdx)
-                            {
-                                this.Match.players.delete(idx);
-                                
-                                client.status = CStatus.Idle;
-                                client.socket.send(JSON.stringify({ph : {num : iType.PacketID.SC_SEARCHING_CANCEL, size : 5}}));
-                                break;
-                            }
-                        }
+                    case iType.PacketID.CS_LOBBY_SEARCHING_CANCEL :
+                        this.process.RECIEVE_CS_LOBBY_SEARCHING_CANCEL(client, data);
                         break;
 
                     case iType.PacketID.CS_GAME_ENTRY:
                         this.process.RECIEVE_CS_GAME_ENTRY(client, data);
-                        
                         break;
 
                     case iType.PacketID.CS_GAME_READY:
                         this.process.RECIEVE_CS_GAME_READY(client, data);
+                        break;
+
+                    case iType.PacketID.CS_GAME_NEW_MATCH:
+                        this.process.RECIEVE_CS_GAME_NEW_MATCH(client, data);
                         break;
 
                     case iType.PacketID.CS_GAME_START:
@@ -171,52 +154,6 @@ class Server
             console.log('server is listening on port 8080')
         })
     }
-
-    EnterMatchQueue(client : Client)
-    {
-        this.Match.players.set(client.userIdx, client);
-
-        if(this.Match.players.size >= 2)
-        {
-            console.log(`this.Match.players.length >= 2`);
-
-            let new_match = new Match();
-            for (const player of this.Match.players.values()) 
-            {
-                new_match.players.set(player.userIdx, player);
-                player.match = new_match;
-            }
-
-            this.Matches.set(this.roomIdx++, new_match);
-            let ph : iType.Head = {num : iType.PacketID.SC_SEARCHING_RESULT, size : 5};
-            let result : iType.SC_Searching_Result = {ph : ph, result : 1};
-            new_match.send_all(JSON.stringify(result));
-            new_match.SaveAllPlayerRes(iType.PacketID.CS_GAME_ENTRY, false);
-            this.Match.players.clear();
-
-            if(client.match != null)
-            {
-                client.match.SetTimer(1000, 5, iType.PacketID.CS_GAME_ENTRY);
-                client.match?.RoomInit();
-
-                // state
-                client.status = CStatus.Playing;
-                client.match.other(client).status = CStatus.Playing;
-            }
-        }
-        else
-        {
-            let ph : iType.Head = {num : iType.PacketID.SC_SEARCHING_ENEMY, size : 5};
-            let result : iType.SC_Searching_Enemy = {ph : ph};
-            client.socket.send(JSON.stringify(result));
-        }
-
-
-        //
-
-
-    }
-
 }
 
 export = new Server();

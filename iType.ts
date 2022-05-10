@@ -3,33 +3,35 @@ import Game, {matrix} from "./Game";
 //
 export enum PacketID
 {
-    CS_PING = 1033,
-    CS_SEARCHING_ENEMY = 1002,
-    CS_SEARCHING_RESULT = 1003,
-    CS_SEARCHING_CANCEL = 1004,
-    CS_GAME_READY = 1005,
-    CS_GAME_START = 1006,
-    CS_GAME_COMPUTE = 1007,
-    CS_GAME_TURN = 1008,
-    CS_GAME_SELECT = 1009,
-    CS_GAME_RESULT = 1010,
-    CS_GAME_OUT = 1011,
-    CS_GAME_TIMER = 1012,
-    CS_GAME_ENTRY = 1013,
+    CS_PING = 1001,
+    CS_LOBBY_SEARCHING_ENEMY,
+    CS_LOBBY_SEARCHING_RESULT,
+    CS_LOBBY_SEARCHING_CANCEL,
+    CS_GAME_ENTRY,
+    CS_GAME_READY,
+    CS_GAME_START,
+    CS_GAME_COMPUTE,
+    CS_GAME_TURN,
+    CS_GAME_SELECT,
+    CS_GAME_RESULT,
+    CS_GAME_NEW_MATCH,
+    CS_GAME_OUT,
+    CS_GAME_TIMER,
 
-    SC_PING = 3033,
-    SC_SEARCHING_ENEMY = 3002,
-    SC_SEARCHING_RESULT = 3003,
-    SC_SEARCHING_CANCEL = 3004,
-    SC_GAME_READY = 3005,
-    SC_GAME_START = 3006,
-    SC_GAME_COMPUTE = 3007,
-    SC_GAME_TURN = 3008,
-    SC_GAME_SELECT = 3009,
-    SC_GAME_RESULT = 3010,
-    SC_GAME_OUT = 3011,
-    SC_GAME_TIMER = 3012,
-    SC_GAME_ENTRY = 3013,
+    SC_PING = 3001,
+    SC_LOBBY_SEARCHING_ENEMY,
+    SC_LOBBY_SEARCHING_RESULT,
+    SC_LOBBY_SEARCHING_CANCEL,
+    SC_GAME_ENTRY,
+    SC_GAME_READY,
+    SC_GAME_START,
+    SC_GAME_COMPUTE,
+    SC_GAME_TURN,
+    SC_GAME_SELECT,
+    SC_GAME_RESULT,
+    SC_GAME_NEW_MATCH,
+    SC_GAME_OUT,
+    SC_GAME_TIMER
 }
 export interface Head
 {
@@ -45,17 +47,17 @@ export interface SC_Ping
 {
     ph : Head
 }
-export interface SC_Searching_Enemy
+export interface SC_Lobby_Searching_Enemy
 {
     ph : Head
 }
-export interface SC_Searching_Result
+export interface SC_Lobby_Searching_Result
 {
     ph : Head
     result : number
 }
 
-export interface SC_Searching_Cancel
+export interface SC_Lobby_Searching_Cancel
 {
     ph : Head
 }
@@ -102,6 +104,10 @@ export interface SC_Game_Result
     looser_point : number
 }
 
+export interface SC_Game_NewMatch
+{
+    ph : Head
+}
 
 export interface SC_Game_Out
 {
@@ -120,11 +126,11 @@ export interface SC_Game_Entry
 }
 
 //////
-export interface CS_Searching_Enemy
+export interface CS_Lobby_Searching_Enemy
 {
     ph : Head
 }
-export interface CS_Searching_Cancel
+export interface CS_Lobby_Searching_Cancel
 {
     ph : Head
 }
@@ -132,6 +138,10 @@ export interface CS_Game_Ready
 {
      ph : Head
      ready : boolean
+}
+export interface CS_Game_NewMatch
+{
+    ph : Head
 }
 export interface CS_Game_Start
 {

@@ -2,55 +2,89 @@ import Client, { CStatus } from "./Client";
 import Match from "./Match";
 import * as iType from "./iType"
 import { matrix } from "./Game";
-
-/*
-
-    CS_PING = 1033,
-    CS_SEARCHING_ENEMY = 1002,
-    CS_SEARCHING_RESULT = 1003,
-    CS_SEARCHING_CANCEL = 1004,
-    CS_GAME_READY = 1005,
-    CS_GAME_START = 1006,
-    CS_GAME_COMPUTE = 1007,
-    CS_GAME_TURN = 1008,
-    CS_GAME_SELECT = 1009,
-    CS_GAME_RESULT = 1010,
-    CS_GAME_OUT = 1011,
-    CS_GAME_TIMER = 1012,
-    CS_GAME_ENTRY = 1013,
-
-    SC_PING = 3033,
-    SC_SEARCHING_ENEMY = 3002,
-    SC_SEARCHING_RESULT = 3003,
-    SC_SEARCHING_CANCEL = 3004,
-    SC_GAME_READY = 3005,
-    SC_GAME_START = 3006,
-    SC_GAME_COMPUTE = 3007,
-    SC_GAME_TURN = 3008,
-    SC_GAME_SELECT = 3009,
-    SC_GAME_RESULT = 3010,
-    SC_GAME_OUT = 3011,
-    SC_GAME_TIMER = 3012,
-    SC_GAME_ENTRY = 3013,
-*/
+let server = require("./Server");
 export default class COREPROCESS
 {
     RECIEVE_CS_PING(client : Client, data : string)
     {
-        
+        client.pingCount = 0;
     }
-    RECIEVE_CS_SEARCHING_ENEMY(client : Client, data : string)
+
+    RECIEVE_CS_LOBBY_SEARCHING_ENEMY(client : Client, data : string)
+    {
+        if(server.match != null)
+        {
+            //let ping : iType.SC_SEARCHING_ENEMY = {ph : ph}
+            const dataform = JSON.parse(data) as iType.CS_Lobby_Searching_Enemy;
+            console.log(dataform);
+            console.log(`Match.players.length ${server.Match.players.size}`);
+
+            if(client.status == CStatus.Idle) 
+            {
+                server.Match.players.set(client.userIdx, client);
+            
+                if(server.Match.players.size >= 2)
+                {
+                    console.log(`this.Match.players.length >= 2`);
+        
+                    let new_match = new Match();
+                    for (const player of server.Match.players.values()) 
+                    {
+                        new_match.players.set(player.userIdx, player);
+                        player.match = new_match;
+                    }
+                    
+                    server.Matches.set(server.roomIdx++, new_match);
+                    let ph : iType.Head = {num : iType.PacketID.SC_LOBBY_SEARCHING_RESULT, size : 5};
+                    let result : iType.SC_Lobby_Searching_Result = {ph : ph, result : 1};
+                    new_match.send_all(JSON.stringify(result));
+                    new_match.SaveAllPlayerRes(iType.PacketID.CS_GAME_ENTRY, false);
+                    server.Match.players.clear();
+        
+                    if(client.match != null)
+                    {
+                        client.match.SetTimer(1000, 5, iType.PacketID.CS_GAME_ENTRY);
+                        client.match?.RoomInit();
+        
+                        // state
+                        client.status = CStatus.Playing;
+                        client.match.other(client).status = CStatus.Playing;
+                    }
+                }
+                else
+                {
+                    let ph : iType.Head = {num : iType.PacketID.SC_LOBBY_SEARCHING_ENEMY, size : 5};
+                    let result : iType.SC_Lobby_Searching_Enemy = {ph : ph};
+                    client.socket.send(JSON.stringify(result));
+                }
+            }
+            client.status = CStatus.Searching;
+        }
+    }
+
+    RECIEVE_CS_LOBBY_SEARCHING_RESULT(client : Client, data : string)
     {
         
     }
-    RECIEVE_CS_SEARCHING_RESULT(client : Client, data : string)
+
+    RECIEVE_CS_LOBBY_SEARCHING_CANCEL(client : Client, data : string)
     {
-        
+        if(server.Match != null)
+        {
+            for (const [idx, player] of server.Match.players) 
+            {
+                if(player.userIdx == client.userIdx)
+                {
+                    server.Match.players.delete(idx);
+                    
+                    client.status = CStatus.Idle;
+                    client.socket.send(JSON.stringify({ph : {num : iType.PacketID.SC_LOBBY_SEARCHING_CANCEL, size : 5}}));
+                    break;
+                }
+            }
+        }
     }
-    RECIEVE_CS_SEARCHING_CANCEL(client : Client, data : string)
-    {
-        
-    }
+
     RECIEVE_CS_GAME_READY(client : Client, data : string)
     {
         let match : Match | null = client.match;
@@ -72,6 +106,12 @@ export default class COREPROCESS
             console.error("match가 존재하지 않음.");
         }
     }
+
+    RECIEVE_CS_GAME_NEW_MATCH(client : Client, data : string)
+    {
+
+    }
+
     RECIEVE_CS_GAME_START(client : Client, data : string)
     {
         let match : Match | null = client.match;
@@ -86,10 +126,11 @@ export default class COREPROCESS
             console.error("match가 존재하지 않음.");
         }
     }
+
     RECIEVE_CS_GAME_COMPUTE(client : Client, data : string)
     {
         let match : Match | null = client.match;
-        if(match != undefined)
+        if(match != null)
         {
             client.packet_res.set(iType.PacketID.SC_GAME_COMPUTE, true);
             if(match.CheckAllPlayerRes(iType.PacketID.SC_GAME_COMPUTE))
@@ -104,12 +145,13 @@ export default class COREPROCESS
                 }
             }
         }
-        
     }
+
     RECIEVE_CS_GAME_TURN(client : Client, data : string)
     {
         
     }
+
     RECIEVE_CS_GAME_SELECT(client : Client, data : string)
     {
         let match : Match | null = client.match;
@@ -122,11 +164,11 @@ export default class COREPROCESS
             console.error("match가 존재하지 않음.");
         }
     }
+
     RECIEVE_CS_GAME_RESULT(client : Client, data : string)
     {
         client.packet_res.set(iType.PacketID.SC_GAME_RESULT, true);
-        console.log(`chk : ${client.match?.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT)}, client ${client.userIdx}: ${client.packet_res.get(iType.PacketID.SC_GAME_RESULT)}`);
-        
+
         let match : Match | null = client.match;
         if(match?.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT))
         {
@@ -134,54 +176,49 @@ export default class COREPROCESS
             let other = match.other(client);
             if(other != null) other.ready = false;
             
+            // New Match
             if(match.CurrentMatchRecord().match.End)
             {
-                match.match_record.push({
-                    R1 : {winner : 0, looser : 0},
-                    R2 : {winner : 0, looser : 0},
-                    R3 : {winner : 0, looser : 0},
-                    End : false,
-                    Round : 1,
-                    Winner : 0
-                });
-                let ph : iType.Head = {num : iType.PacketID.SC_GAME_READY, size : 5};
-                let result : iType.SC_Game_Ready = {ph : ph, ready : false};
-                match.send_all(JSON.stringify(result));
+                this.SEND_SC_GAME_NEW_MATCH(client, match);
             }
+            // Next Round
             else
             {
-                let ph : iType.Head = {num : iType.PacketID.SC_GAME_START, size : 5};
-                let result : iType.SC_Game_Start;
-                match.players.forEach(player => {
-                    console.log("useridx : " + player.userIdx);
-                    if(match != null)
-                    {
-                        result = {
-                            ph : ph,
-                            userIdx : player.userIdx,
-                            match : match.CurrentMatchRecord().match_count,
-                            round : match.CurrentMatchRecord().match.Round
-                        };
-                        player.socket.send(JSON.stringify(result));
-                    }
-                });
+                this.SEND_SC_GAME_START(client, match);
             }
         }
-        
     }
+
+    RECIEVE_CS_GAME_ROUND_RESULT(client : Client, match : Match, data? : string)
+    {
+
+    }
+
+    RECIEVE_CS_GAME_MATCH_RESULT(client : Client, match : Match, data? : string)
+    {
+
+    }
+
     RECIEVE_CS_GAME_OUT(client : Client, data : string)
     {
         
     }
+
     RECIEVE_CS_GAME_TIMER(client : Client, data : string)
     {
         
     }
+
     RECIEVE_CS_GAME_ENTRY(client : Client, data : string)
     {
-        
+        let match : Match | null = client.match;
+        if(match != null)
+        {
+            this.SEND_SC_GAME_NEW_MATCH(client, match);
+        }
     }
-    SEND_SC_SEARCHING_ENEMY(client : Client, match : Match, data? : string)
+
+    SEND_SC_LOBBY_SEARCHING_ENEMY(client : Client, match : Match, data? : string)
     {
         client.packet_res.set(iType.PacketID.CS_GAME_ENTRY, true);
 
@@ -193,14 +230,17 @@ export default class COREPROCESS
         let result : iType.SC_Game_Entry = {ph : ph};
         match.send(client, JSON.stringify(result));
     }
-    SEND_SC_SEARCHING_RESULT(client : Client, match : Match, data? : string)
+
+    SEND_SC_LOBBY_SEARCHING_RESULT(client : Client, match : Match, data? : string)
     {
         
     }
-    SEND_SC_SEARCHING_CANCEL(client : Client, match : Match, data? : string)
+
+    SEND_SC_LOBBY_SEARCHING_CANCEL(client : Client, match : Match, data? : string)
     {
         
     }
+
     SEND_SC_GAME_READY(client : Client, match : Match, data? : string)
     {
         if(data != undefined)
@@ -212,15 +252,26 @@ export default class COREPROCESS
             result = {ph : ph, ready : cs_game_ready.ready};
             client.socket.send(JSON.stringify(result));
         }
-        else
-        {
-            console.error("SC_GAME_READY data undefined");
-        }
     }
+
+    SEND_SC_GAME_NEW_MATCH(client : Client, match : Match, data? : string)
+    {
+        match.match_record.push({
+            R1 : {winner : 0, looser : 0},
+            R2 : {winner : 0, looser : 0},
+            R3 : {winner : 0, looser : 0},
+            End : false,
+            Round : 1,
+            Winner : 0
+        });
+        
+        let ph : iType.Head = {num : iType.PacketID.SC_GAME_NEW_MATCH, size : 5};
+        let result : iType.SC_Game_NewMatch = {ph : ph};
+        match.send_all(JSON.stringify(result));
+    }
+
     SEND_SC_GAME_START(client : Client, match : Match, data? : string)
     {
-        match.MatchInit();
-
         let ph : iType.Head = {num : iType.PacketID.SC_GAME_START, size : 5};
         let result : iType.SC_Game_Start;
         match.players.forEach(player => {
@@ -233,6 +284,7 @@ export default class COREPROCESS
             player.socket.send(JSON.stringify(result));
         });
     }
+
     SEND_SC_GAME_COMPUTE(client : Client, match : Match, data : string)
     {
         if(match.turn == client.userIdx)
@@ -261,8 +313,8 @@ export default class COREPROCESS
                 }
             }
         }
-        
     }
+
     SEND_SC_GAME_TURN(client : Client, match : Match, data? : string)
     {
         let ph : iType.Head = {num : iType.PacketID.SC_GAME_TURN, size : 5};
@@ -270,10 +322,12 @@ export default class COREPROCESS
         match.send_all(JSON.stringify(result));
         
     }
+
     SEND_SC_GAME_SELECT(client : Client, match : Match, data? : string)
     {
         
     }
+
     SEND_SC_GAME_RESULT(client : Client, match : Match, data? : string)
     {
         let winner : Client = match.winner();
@@ -289,18 +343,19 @@ export default class COREPROCESS
         match.SaveAllPlayerRes(iType.PacketID.SC_GAME_RESULT, false);
         match.send_all(JSON.stringify(result));
     }
+
     SEND_SC_GAME_OUT(client : Client, match : Match, data? : string)
     {
         
     }
+
     SEND_SC_GAME_TIMER(client : Client, match : Match, data? : string)
     {
         
     }
+
     SEND_SC_GAME_ENTRY(client : Client, match : Match, data? : string)
     {
         
     }
-
-
 }
