@@ -2,7 +2,7 @@ import Client, { CStatus } from "./Client";
 import Match from "./Match";
 import * as iType from "./iType"
 import { matrix } from "./Game";
-let server = require("./Server");
+import {server, Server} from "./Server";
 export default class COREPROCESS
 {
     RECIEVE_CS_PING(client : Client, data : string)
@@ -12,7 +12,7 @@ export default class COREPROCESS
 
     RECIEVE_CS_LOBBY_SEARCHING_ENEMY(client : Client, data : string)
     {
-        if(server.match != null)
+        if(server.Match != null)
         {
             //let ping : iType.SC_SEARCHING_ENEMY = {ph : ph}
             const dataform = JSON.parse(data) as iType.CS_Lobby_Searching_Enemy;

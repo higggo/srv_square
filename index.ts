@@ -1,3 +1,3 @@
-let server = require("./Server");
+import {server, Server} from "./Server";
 
 server.RUNNING();

@@ -34,14 +34,6 @@ class Match {
         this.game = new Game_1.default();
         this.turn = 0;
         this.match_record = new Array();
-        this.match_record.push({
-            R1: { winner: 0, looser: 0 },
-            R2: { winner: 0, looser: 0 },
-            R3: { winner: 0, looser: 0 },
-            End: false,
-            Round: 1,
-            Winner: 0
-        });
     }
     RoomInit() {
         this.players.forEach(player => {

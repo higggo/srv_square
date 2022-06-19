@@ -8,7 +8,7 @@ const webSocket = require('ws');
 
 
 /////
-class Server
+export class Server
 {
 
     //
@@ -156,4 +156,4 @@ class Server
     }
 }
 
-export = new Server();
+export const server = new Server();

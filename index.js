@@ -1,4 +1,4 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-let server = require("./Server");
-server.RUNNING();
+const Server_1 = require("./Server");
+Server_1.server.RUNNING();
