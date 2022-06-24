@@ -1,6 +1,6 @@
 
 import { textChangeRangeIsUnchanged } from "typescript";
-import Match from "./Match";
+import Position from "./Position";
 import * as iType from "./iType"
 export enum CStatus
 {
@@ -13,9 +13,7 @@ export default class Client
     userIdx : number;
     socket : any;
     status : CStatus;
-    match : Match | null;
-    ready : boolean
-    point : number;
+    position : Position
     connect : boolean;
     pingCount : number = 0;
     pingTimer : NodeJS.Timer | undefined;
@@ -26,10 +24,7 @@ export default class Client
         this.userIdx = userIdx;
         this.socket = socket;
         this.status = CStatus.Idle;
-
-        this.match = null;
-        this.ready = false;
-        this.point = 0;
+        this.position = new Position();
         this.connect = false;
     }
     

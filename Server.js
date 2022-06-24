@@ -1,7 +1,11 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -23,8 +27,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.server = exports.Server = void 0;
-const Client_1 = __importStar(require("./Client"));
-const Match_1 = __importDefault(require("./Match"));
 const iType = __importStar(require("./iType"));
 const COREPROCESS_1 = __importDefault(require("./COREPROCESS"));
 //
@@ -33,12 +35,8 @@ const webSocket = require('ws');
 class Server {
     constructor() {
         //
-        this.Matches = new Map();
-        this.Match = new Match_1.default();
-        //
         this.lastUserIdx = 0;
         this.Clients = new Map();
-        this.roomIdx = 0;
         this.process = new COREPROCESS_1.default();
         this.port = 8080;
         this.wss = new webSocket.Server({ port: this.port }, () => {
@@ -49,26 +47,10 @@ class Server {
     }
     RUNNING() {
         this.wss.on('connection', (ws) => {
-            //
-            const userIdx = this.lastUserIdx++;
-            let client = new Client_1.default(userIdx, ws);
+            let client = this.process.CREATE_NEW_CLIENT(ws);
             client.OnConnected();
-            this.Clients.set(userIdx, client);
-            let match;
-            // send ping
-            let ph = { num: iType.PacketID.SC_PING, size: 5 };
-            let ping = { ph: ph };
-            ws.send(JSON.stringify(ping));
-            client.pingCount++;
-            client.pingTimer = setInterval(() => {
-                if (client.pingCount > 3) {
-                    client.OnDisconnected();
-                }
-                else {
-                    ws.send(JSON.stringify({ ph: { num: iType.PacketID.SC_PING, size: 5 } }));
-                    client.pingCount++;
-                }
-            }, 3000);
+            this.process.SEND_SC_START_PING(client);
+            this.process.SEND_SC_GAME_SPEACTATION(client);
             //
             ws.on('message', (data) => {
                 //console.log('data received %o', data.toString())
@@ -79,34 +61,11 @@ class Server {
                     case iType.PacketID.CS_PING:
                         this.process.RECIEVE_CS_PING(client, data);
                         break;
-                    case iType.PacketID.CS_LOBBY_SEARCHING_ENEMY:
-                        this.process.RECIEVE_CS_LOBBY_SEARCHING_ENEMY(client, data);
+                    case iType.PacketID.CS_GAME_MOVE:
+                        this.process.RECIEVE_CS_GAME_MOVE(client, data);
                         break;
-                    case iType.PacketID.CS_LOBBY_SEARCHING_CANCEL:
-                        this.process.RECIEVE_CS_LOBBY_SEARCHING_CANCEL(client, data);
-                        break;
-                    case iType.PacketID.CS_GAME_ENTRY:
-                        this.process.RECIEVE_CS_GAME_ENTRY(client, data);
-                        break;
-                    case iType.PacketID.CS_GAME_READY:
-                        this.process.RECIEVE_CS_GAME_READY(client, data);
-                        break;
-                    case iType.PacketID.CS_GAME_NEW_MATCH:
-                        this.process.RECIEVE_CS_GAME_NEW_MATCH(client, data);
-                        break;
-                    case iType.PacketID.CS_GAME_START:
-                        this.process.RECIEVE_CS_GAME_START(client, data);
-                        break;
-                    case iType.PacketID.CS_GAME_SELECT:
-                        this.process.RECIEVE_CS_GAME_SELECT(client, data);
-                        break;
-                    case iType.PacketID.CS_GAME_COMPUTE:
-                        this.process.RECIEVE_CS_GAME_COMPUTE(client, data);
-                        break;
-                    case iType.PacketID.CS_GAME_RESULT:
-                        this.process.RECIEVE_CS_GAME_RESULT(client, data);
-                        break;
-                    case iType.PacketID.CS_GAME_TIMER:
+                    case iType.PacketID.CS_GAME_POSITION:
+                        this.process.RECIEVE_CS_GAME_POSITION(client, data);
                         break;
                     default:
                         break;
@@ -114,22 +73,12 @@ class Server {
             });
             //
             ws.on('close', () => {
-                if (this.Clients.has(userIdx)) {
+                if (this.Clients.has(client.userIdx)) {
                     client.OnDisconnected();
-                    switch (client.status) {
-                        case Client_1.CStatus.Idle:
-                            this.Clients.delete(client.userIdx);
-                            break;
-                        case Client_1.CStatus.Searching:
-                            this.Match.players.delete(client.userIdx);
-                            break;
-                        case Client_1.CStatus.Playing:
-                            break;
-                        default:
-                            break;
-                    }
+                    this.Clients.delete(client.userIdx);
+                    this.process.SEND_SC_GAME_OUT(client);
                 }
-                console.log(`WS Closed userIdx : ${userIdx}, Clients Size : ${this.Clients.size}, Match.players.length ${this.Match.players.size}`);
+                console.log(`WS Closed userIdx : ${client.userIdx}, Clients Size : ${this.Clients.size}`);
             });
         });
         this.wss.on('listening', () => {

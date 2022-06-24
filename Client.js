@@ -1,6 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CStatus = void 0;
+const Position_1 = __importDefault(require("./Position"));
 var CStatus;
 (function (CStatus) {
     CStatus[CStatus["Idle"] = 0] = "Idle";
@@ -14,9 +18,7 @@ class Client {
         this.userIdx = userIdx;
         this.socket = socket;
         this.status = CStatus.Idle;
-        this.match = null;
-        this.ready = false;
-        this.point = 0;
+        this.position = new Position_1.default();
         this.connect = false;
     }
     OnDisconnected() {
