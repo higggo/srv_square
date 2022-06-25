@@ -39,6 +39,7 @@ export class Server
             client.OnConnected();
             this.process.SEND_SC_START_PING(client);
             this.process.SEND_SC_GAME_SPEACTATION(client);
+            this.process.SEND_SC_GAME_HELLO_NEWCLIENT(client);
 
             //
             ws.on('message', (data: string)=>{

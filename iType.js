@@ -11,5 +11,6 @@ var PacketID;
     PacketID[PacketID["SC_GAME_SPECTATION"] = 3002] = "SC_GAME_SPECTATION";
     PacketID[PacketID["SC_GAME_MOVE"] = 3003] = "SC_GAME_MOVE";
     PacketID[PacketID["SC_GAME_OUT"] = 3004] = "SC_GAME_OUT";
-    PacketID[PacketID["SC_GAME_TIMER"] = 3005] = "SC_GAME_TIMER";
+    PacketID[PacketID["SC_GAME_HELLO_NEWCLIENT"] = 3005] = "SC_GAME_HELLO_NEWCLIENT";
+    PacketID[PacketID["SC_GAME_TIMER"] = 3006] = "SC_GAME_TIMER";
 })(PacketID = exports.PacketID || (exports.PacketID = {}));

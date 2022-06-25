@@ -9,6 +9,7 @@ export enum PacketID
     SC_GAME_SPECTATION,
     SC_GAME_MOVE,
     SC_GAME_OUT,
+    SC_GAME_HELLO_NEWCLIENT,
     SC_GAME_TIMER
 }
 export interface Head
@@ -78,4 +79,10 @@ export interface SC_Game_Out
 {
     ph : Head
     index : number
+}
+
+export interface SC_Game_Hello_NewClient
+{
+    ph : Head
+    character : Character
 }

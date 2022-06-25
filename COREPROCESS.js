@@ -1,11 +1,7 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -73,6 +69,21 @@ class COREPROCESS {
         let specHead = { num: iType.PacketID.SC_GAME_SPECTATION, size: 5 };
         let spectation = { ph: specHead, index: sender.userIdx, characters: characters };
         sender.socket.send(JSON.stringify(spectation));
+    }
+    SEND_SC_GAME_HELLO_NEWCLIENT(sender) {
+        let characters = [];
+        for (const client of Server_1.server.Clients.values()) {
+            characters.push({
+                index: client.userIdx,
+                position: client.position.Get()
+            });
+        }
+        let head = { num: iType.PacketID.SC_GAME_HELLO_NEWCLIENT, size: 5 };
+        let packet = { ph: head, character: { index: sender.userIdx, position: sender.position.Get() } };
+        for (const client of Server_1.server.Clients.values()) {
+            if (sender.userIdx != client.userIdx)
+                client.socket.send(JSON.stringify(packet));
+        }
     }
     SEND_SC_GAME_MOVE(sender, position) {
         let ph = { num: iType.PacketID.SC_GAME_MOVE, size: 5 };

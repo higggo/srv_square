@@ -63,6 +63,27 @@ export default class COREPROCESS
         sender.socket.send(JSON.stringify(spectation));
     }
 
+    SEND_SC_GAME_HELLO_NEWCLIENT(sender : Client)
+    {
+        let characters : iType.Character[] = [];
+            
+        for (const client of server.Clients.values()) 
+        {
+            characters.push({
+                index : client.userIdx,
+                position : client.position.Get()
+                });
+        }
+        let head : iType.Head = {num : iType.PacketID.SC_GAME_HELLO_NEWCLIENT, size : 5};
+        let packet : iType.SC_Game_Hello_NewClient = {ph : head, character : {index : sender.userIdx, position : sender.position.Get()}};
+        
+        for(const client of server.Clients.values())
+        {
+            if(sender.userIdx != client.userIdx)
+                client.socket.send(JSON.stringify(packet));
+        }
+    }
+
     SEND_SC_GAME_MOVE(sender : Client, position : iType.Position)
     {
         let ph : iType.Head = {num : iType.PacketID.SC_GAME_MOVE, size : 5};
