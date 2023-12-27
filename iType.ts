@@ -14,6 +14,7 @@ export enum PacketID
     CS_GAME_TURN,
     CS_GAME_SELECT,
     CS_GAME_RESULT,
+    CS_GAME_END,
     CS_GAME_NEW_MATCH,
     CS_GAME_OUT,
     CS_GAME_TIMER,
@@ -29,6 +30,7 @@ export enum PacketID
     SC_GAME_TURN,
     SC_GAME_SELECT,
     SC_GAME_RESULT,
+    SC_GAME_END,
     SC_GAME_NEW_MATCH,
     SC_GAME_OUT,
     SC_GAME_TIMER
@@ -104,6 +106,11 @@ export interface SC_Game_Result
     looser_point : number
 }
 
+export interface SC_Game_End
+{
+    ph : Head
+}
+
 export interface SC_Game_NewMatch
 {
     ph : Head
@@ -167,6 +174,11 @@ export interface CS_Game_Select
 export interface CS_Game_Result
 {
      ph : Head
+}
+
+export interface CS_Game_End
+{
+    ph : Head
 }
 
 export interface CS_Game_Out

@@ -1,7 +1,11 @@
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -151,26 +155,38 @@ class Match {
         }
     }
     RecordUpdate(winner, looser) {
+        // 단판으로 변경
         const lastIdx = this.match_record.length - 1;
-        if (this.match_record[lastIdx].Round == 1) {
-            this.match_record[lastIdx].R1 = { winner: winner, looser: looser };
+        this.match_record[lastIdx].R3 = { winner: winner, looser: looser };
+        this.match_record[lastIdx].End = true;
+        this.match_record[lastIdx].Winner = winner;
+        /*
+        // 3판 2선
+        if(this.match_record[lastIdx].Round == 1)
+        {
+            this.match_record[lastIdx].R1 = {winner : winner, looser : looser};
             this.match_record[lastIdx].Round++;
         }
-        else if (this.match_record[lastIdx].Round == 2) {
-            this.match_record[lastIdx].R2 = { winner: winner, looser: looser };
-            if (this.match_record[lastIdx].R1.winner == winner) {
+        else if(this.match_record[lastIdx].Round == 2)
+        {
+            this.match_record[lastIdx].R2 = {winner : winner, looser : looser};
+            if(this.match_record[lastIdx].R1.winner == winner)
+            {
                 this.match_record[lastIdx].End = true;
                 this.match_record[lastIdx].Winner = winner;
             }
-            else {
+            else
+            {
                 this.match_record[lastIdx].Round++;
             }
         }
-        else if (this.match_record[lastIdx].Round == 3) {
-            this.match_record[lastIdx].R3 = { winner: winner, looser: looser };
+        else if(this.match_record[lastIdx].Round == 3)
+        {
+            this.match_record[lastIdx].R3 = {winner : winner, looser : looser};
             this.match_record[lastIdx].End = true;
             this.match_record[lastIdx].Winner = winner;
         }
+        */
     }
     CurrentMatchRecord() {
         const lastIdx = this.match_record.length - 1;

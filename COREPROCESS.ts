@@ -176,6 +176,9 @@ export default class COREPROCESS
             let other = match.other(client);
             if(other != null) other.ready = false;
             
+            this.SEND_SC_GAME_END(client, match);
+            /*
+            // 3판 2선 삭제
             // New Match
             if(match.CurrentMatchRecord().match.End)
             {
@@ -186,7 +189,13 @@ export default class COREPROCESS
             {
                 this.SEND_SC_GAME_START(client, match);
             }
+            */
         }
+    }
+
+    RECIEVE_CS_GAME_END(client : Client, data : string)
+    {
+        
     }
 
     RECIEVE_CS_GAME_ROUND_RESULT(client : Client, match : Match, data? : string)
@@ -342,6 +351,11 @@ export default class COREPROCESS
         match.RecordUpdate(winner.userIdx, looser.userIdx);
         match.SaveAllPlayerRes(iType.PacketID.SC_GAME_RESULT, false);
         match.send_all(JSON.stringify(result));
+    }
+
+    SEND_SC_GAME_END(client : Client, match : Match, data? : string)
+    {
+        
     }
 
     SEND_SC_GAME_OUT(client : Client, match : Match, data? : string)

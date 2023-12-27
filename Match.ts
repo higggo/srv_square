@@ -198,8 +198,15 @@ export default class Match
     }
     RecordUpdate(winner : number, looser : number)
     {
+        // 단판으로 변경
         const lastIdx = this.match_record.length-1;
-
+        
+        this.match_record[lastIdx].R3 = {winner : winner, looser : looser};
+        this.match_record[lastIdx].End = true;
+        this.match_record[lastIdx].Winner = winner;
+        
+        /*
+        // 3판 2선
         if(this.match_record[lastIdx].Round == 1)
         {            
             this.match_record[lastIdx].R1 = {winner : winner, looser : looser};
@@ -224,6 +231,7 @@ export default class Match
             this.match_record[lastIdx].End = true;
             this.match_record[lastIdx].Winner = winner;
         }
+        */
     }
     CurrentMatchRecord() : {match : MatchRecord, match_count : number}
     {

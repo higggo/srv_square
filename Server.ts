@@ -118,6 +118,10 @@ export class Server
                         this.process.RECIEVE_CS_GAME_RESULT(client, data);
                         break;
 
+                    case iType.PacketID.CS_GAME_END:
+                        this.process.RECIEVE_CS_GAME_END(client, data);
+                        break;
+
                     case iType.PacketID.CS_GAME_TIMER:
                         break;
 
