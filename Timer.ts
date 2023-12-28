@@ -34,16 +34,7 @@ export default class Timer
     }
     IntervalCallback()
     {
-        console.log("1");
-        
         this.intervalFunc.call(this);
-        console.log("2");
-        this.intervalFunc;
-        console.log("3");
-        this.intervalFunc();
-        console.log("4");
-        console.log("timer count " + this.nowCount);
-        
         this.nowCount++;
         if(this.nowCount == this.exitCount)
         {

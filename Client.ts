@@ -14,7 +14,6 @@ export default class Client
     socket : any;
     status : CStatus;
     match : Match | null;
-    ready : boolean
     point : number;
     connect : boolean;
     pingCount : number = 0;
@@ -28,7 +27,6 @@ export default class Client
         this.status = CStatus.Idle;
 
         this.match = null;
-        this.ready = false;
         this.point = 0;
         this.connect = false;
     }
@@ -45,5 +43,12 @@ export default class Client
     {
         this.connect = true;
         this.pingCount = 0;
+    }
+
+    GoToLobby()
+    {
+        this.match = null;
+        this.point = 0;
+        this.status = CStatus.Idle;
     }
 }

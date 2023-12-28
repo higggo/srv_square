@@ -27,14 +27,15 @@ export default class COREPROCESS
                 {
                     console.log(`this.Match.players.length >= 2`);
         
-                    let new_match = new Match();
+                    let matchIdx = server.roomIdx++;
+                    let new_match = new Match(matchIdx);
                     for (const player of server.Match.players.values()) 
                     {
                         new_match.players.set(player.userIdx, player);
                         player.match = new_match;
                     }
                     
-                    server.Matches.set(server.roomIdx++, new_match);
+                    server.Matches.set(matchIdx, new_match);
                     let ph : iType.Head = {num : iType.PacketID.SC_LOBBY_SEARCHING_RESULT, size : 5};
                     let result : iType.SC_Lobby_Searching_Result = {ph : ph, result : 1};
                     new_match.send_all(JSON.stringify(result));
@@ -91,6 +92,9 @@ export default class COREPROCESS
         if(match != null)
         {
             const cs_game_ready = JSON.parse(data) as iType.CS_Game_Ready;
+
+            // 준비단계 삭제
+            /*
             client.ready = cs_game_ready.ready;
             if(match.all_ready())
             {
@@ -100,6 +104,7 @@ export default class COREPROCESS
             {
                 this.SEND_SC_GAME_READY(client, match, data);
             }
+            */
         }
         else
         {
@@ -109,7 +114,9 @@ export default class COREPROCESS
 
     RECIEVE_CS_GAME_NEW_MATCH(client : Client, data : string)
     {
-
+        let match : Match | null = client.match;
+        if(match != null)
+            this.SEND_SC_GAME_START(client, match);
     }
 
     RECIEVE_CS_GAME_START(client : Client, data : string)
@@ -172,10 +179,6 @@ export default class COREPROCESS
         let match : Match | null = client.match;
         if(match?.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT))
         {
-            client.ready = false;
-            let other = match.other(client);
-            if(other != null) other.ready = false;
-            
             this.SEND_SC_GAME_END(client, match);
             /*
             // 3판 2선 삭제
@@ -276,13 +279,16 @@ export default class COREPROCESS
         
         let ph : iType.Head = {num : iType.PacketID.SC_GAME_NEW_MATCH, size : 5};
         let result : iType.SC_Game_NewMatch = {ph : ph};
-        match.send_all(JSON.stringify(result));
+        client.socket.send(JSON.stringify(result));
     }
 
     SEND_SC_GAME_START(client : Client, match : Match, data? : string)
     {
         let ph : iType.Head = {num : iType.PacketID.SC_GAME_START, size : 5};
         let result : iType.SC_Game_Start;
+
+        // 레디 단계 없어지면서 각자 보내는 걸로 변경
+        /*
         match.players.forEach(player => {
             result = {
                 ph : ph,
@@ -292,6 +298,15 @@ export default class COREPROCESS
                 };
             player.socket.send(JSON.stringify(result));
         });
+        */
+        
+        result = {
+            ph : ph,
+            userIdx : client.userIdx,
+            match : match.CurrentMatchRecord().match_count,
+            round : match.CurrentMatchRecord().match.Round
+            };
+        client.socket.send(JSON.stringify(result));
     }
 
     SEND_SC_GAME_COMPUTE(client : Client, match : Match, data : string)
@@ -351,6 +366,12 @@ export default class COREPROCESS
         match.RecordUpdate(winner.userIdx, looser.userIdx);
         match.SaveAllPlayerRes(iType.PacketID.SC_GAME_RESULT, false);
         match.send_all(JSON.stringify(result));
+
+        // 모두 로비로 이동
+        winner.GoToLobby();
+        looser.GoToLobby();
+        
+        server.Matches.delete(match.matchIdx);
     }
 
     SEND_SC_GAME_END(client : Client, match : Match, data? : string)

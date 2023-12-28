@@ -23,6 +23,7 @@ interface MatchRecord
 
 export default class Match
 {
+    public matchIdx : number;
     public players : Map<number, Client>;
     public game : Game;
     public turn : number;
@@ -32,8 +33,9 @@ export default class Match
     timer : Timer = new Timer();
     
     //public response = new Map<number,
-    constructor()
+    constructor(matchIdx : number)
     {
+        this.matchIdx = matchIdx;
         this.players = new Map<number, Client>();
         this.game = new Game();
         this.turn = 0;
@@ -43,7 +45,6 @@ export default class Match
     RoomInit()
     {
         this.players.forEach(player => {
-            player.ready = false;
             player.point = 0;
             player.packet_res.clear();
         });
@@ -53,7 +54,6 @@ export default class Match
     MatchInit()
     {
         this.players.forEach(player => {
-            player.ready = false;
         });
 
     }
@@ -89,6 +89,7 @@ export default class Match
           
           
     }
+    /*
     all_ready() : boolean
     {
         let start : boolean = true;
@@ -100,7 +101,7 @@ export default class Match
         });
         return start;
     }
-
+    */
     winner() : Client
     {
         let idx : number = 0;
@@ -233,6 +234,7 @@ export default class Match
         }
         */
     }
+
     CurrentMatchRecord() : {match : MatchRecord, match_count : number}
     {
         const lastIdx = this.match_record.length-1;

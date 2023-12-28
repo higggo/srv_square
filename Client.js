@@ -15,7 +15,6 @@ class Client {
         this.socket = socket;
         this.status = CStatus.Idle;
         this.match = null;
-        this.ready = false;
         this.point = 0;
         this.connect = false;
     }
@@ -30,6 +29,11 @@ class Client {
     OnConnected() {
         this.connect = true;
         this.pingCount = 0;
+    }
+    GoToLobby() {
+        this.match = null;
+        this.point = 0;
+        this.status = CStatus.Idle;
     }
 }
 exports.default = Client;

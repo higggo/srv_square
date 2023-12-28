@@ -31,9 +31,10 @@ const iType = __importStar(require("./iType"));
 const Timer_1 = __importDefault(require("./Timer"));
 class Match {
     //public response = new Map<number,
-    constructor() {
+    constructor(matchIdx) {
         // timer
         this.timer = new Timer_1.default();
+        this.matchIdx = matchIdx;
         this.players = new Map();
         this.game = new Game_1.default();
         this.turn = 0;
@@ -41,7 +42,6 @@ class Match {
     }
     RoomInit() {
         this.players.forEach(player => {
-            player.ready = false;
             player.point = 0;
             player.packet_res.clear();
         });
@@ -49,7 +49,6 @@ class Match {
     }
     MatchInit() {
         this.players.forEach(player => {
-            player.ready = false;
         });
     }
     RoundInit() {
@@ -74,15 +73,19 @@ class Match {
         }
         console.log("Not Exist That Client !");
     }
-    all_ready() {
-        let start = true;
+    /*
+    all_ready() : boolean
+    {
+        let start : boolean = true;
         this.players.forEach(player => {
-            if (!player.ready) {
+            if(!player.ready)
+            {
                 start = false;
             }
         });
         return start;
     }
+    */
     winner() {
         let idx = 0;
         let point = 0;
@@ -157,7 +160,7 @@ class Match {
     RecordUpdate(winner, looser) {
         // 단판으로 변경
         const lastIdx = this.match_record.length - 1;
-        this.match_record[lastIdx].R3 = { winner: winner, looser: looser };
+        //this.match_record[lastIdx].R3 = { winner: winner, looser: looser };
         this.match_record[lastIdx].End = true;
         this.match_record[lastIdx].Winner = winner;
         /*

@@ -17,7 +17,9 @@ export class Server
 
     //
     Matches = new Map<number, Match>();
-    Match : Match = new Match();
+
+    // 대기열
+    Match : Match = new Match(-1);
 
     //
     lastUserIdx : number = 0;
@@ -135,20 +137,24 @@ export class Server
             ws.on('close', () =>{
                 if(this.Clients.has(userIdx)) 
                 {
-                    client.OnDisconnected();
                     switch(client.status)
                     {
                         case CStatus.Idle:
-                            this.Clients.delete(client.userIdx);
                             break;
                         case CStatus.Searching:
                             this.Match.players.delete(client.userIdx);
                             break;
                         case CStatus.Playing:
+                            let match : Match | null = client.match;
+                            if(match != null) this.process.SEND_SC_GAME_RESULT(client, match);
+
                             break;
                         default :
                             break;
                     }
+                    
+                    client.OnDisconnected();
+                    this.Clients.delete(client.userIdx);
                 }
                 console.log(`WS Closed userIdx : ${userIdx}, Clients Size : ${this.Clients.size}, Match.players.length ${this.Match.players.size}`);
             })

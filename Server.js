@@ -38,7 +38,8 @@ class Server {
     constructor() {
         //
         this.Matches = new Map();
-        this.Match = new Match_1.default();
+        // 대기열
+        this.Match = new Match_1.default(-1);
         //
         this.lastUserIdx = 0;
         this.Clients = new Map();
@@ -110,6 +111,9 @@ class Server {
                     case iType.PacketID.CS_GAME_RESULT:
                         this.process.RECIEVE_CS_GAME_RESULT(client, data);
                         break;
+                    case iType.PacketID.CS_GAME_END:
+                        this.process.RECIEVE_CS_GAME_END(client, data);
+                        break;
                     case iType.PacketID.CS_GAME_TIMER:
                         break;
                     default:
@@ -119,19 +123,22 @@ class Server {
             //
             ws.on('close', () => {
                 if (this.Clients.has(userIdx)) {
-                    client.OnDisconnected();
                     switch (client.status) {
                         case Client_1.CStatus.Idle:
-                            this.Clients.delete(client.userIdx);
                             break;
                         case Client_1.CStatus.Searching:
                             this.Match.players.delete(client.userIdx);
                             break;
                         case Client_1.CStatus.Playing:
+                            let match = client.match;
+                            if (match != null)
+                                this.process.SEND_SC_GAME_RESULT(client, match);
                             break;
                         default:
                             break;
                     }
+                    client.OnDisconnected();
+                    this.Clients.delete(client.userIdx);
                 }
                 console.log(`WS Closed userIdx : ${userIdx}, Clients Size : ${this.Clients.size}, Match.players.length ${this.Match.players.size}`);
             });

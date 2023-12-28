@@ -45,12 +45,13 @@ class COREPROCESS {
                 Server_1.server.Match.players.set(client.userIdx, client);
                 if (Server_1.server.Match.players.size >= 2) {
                     console.log(`this.Match.players.length >= 2`);
-                    let new_match = new Match_1.default();
+                    let matchIdx = Server_1.server.roomIdx++;
+                    let new_match = new Match_1.default(matchIdx);
                     for (const player of Server_1.server.Match.players.values()) {
                         new_match.players.set(player.userIdx, player);
                         player.match = new_match;
                     }
-                    Server_1.server.Matches.set(Server_1.server.roomIdx++, new_match);
+                    Server_1.server.Matches.set(matchIdx, new_match);
                     let ph = { num: iType.PacketID.SC_LOBBY_SEARCHING_RESULT, size: 5 };
                     let result = { ph: ph, result: 1 };
                     new_match.send_all(JSON.stringify(result));
@@ -91,19 +92,27 @@ class COREPROCESS {
         let match = client.match;
         if (match != null) {
             const cs_game_ready = JSON.parse(data);
+            // 준비단계 삭제
+            /*
             client.ready = cs_game_ready.ready;
-            if (match.all_ready()) {
+            if(match.all_ready())
+            {
                 this.SEND_SC_GAME_START(client, match);
             }
-            else {
+            else
+            {
                 this.SEND_SC_GAME_READY(client, match, data);
             }
+            */
         }
         else {
             console.error("match가 존재하지 않음.");
         }
     }
     RECIEVE_CS_GAME_NEW_MATCH(client, data) {
+        let match = client.match;
+        if (match != null)
+            this.SEND_SC_GAME_START(client, match);
     }
     RECIEVE_CS_GAME_START(client, data) {
         let match = client.match;
@@ -145,19 +154,23 @@ class COREPROCESS {
         client.packet_res.set(iType.PacketID.SC_GAME_RESULT, true);
         let match = client.match;
         if (match === null || match === void 0 ? void 0 : match.CheckAllPlayerRes(iType.PacketID.SC_GAME_RESULT)) {
-            client.ready = false;
-            let other = match.other(client);
-            if (other != null)
-                other.ready = false;
+            this.SEND_SC_GAME_END(client, match);
+            /*
+            // 3판 2선 삭제
             // New Match
-            if (match.CurrentMatchRecord().match.End) {
+            if(match.CurrentMatchRecord().match.End)
+            {
                 this.SEND_SC_GAME_NEW_MATCH(client, match);
             }
             // Next Round
-            else {
+            else
+            {
                 this.SEND_SC_GAME_START(client, match);
             }
+            */
         }
+    }
+    RECIEVE_CS_GAME_END(client, data) {
     }
     RECIEVE_CS_GAME_ROUND_RESULT(client, match, data) {
     }
@@ -206,20 +219,30 @@ class COREPROCESS {
         });
         let ph = { num: iType.PacketID.SC_GAME_NEW_MATCH, size: 5 };
         let result = { ph: ph };
-        match.send_all(JSON.stringify(result));
+        client.socket.send(JSON.stringify(result));
     }
     SEND_SC_GAME_START(client, match, data) {
         let ph = { num: iType.PacketID.SC_GAME_START, size: 5 };
         let result;
+        // 레디 단계 없어지면서 각자 보내는 걸로 변경
+        /*
         match.players.forEach(player => {
             result = {
-                ph: ph,
-                userIdx: player.userIdx,
-                match: match.CurrentMatchRecord().match_count,
-                round: match.CurrentMatchRecord().match.Round
-            };
+                ph : ph,
+                userIdx : player.userIdx,
+                match : match.CurrentMatchRecord().match_count,
+                round : match.CurrentMatchRecord().match.Round
+                };
             player.socket.send(JSON.stringify(result));
         });
+        */
+        result = {
+            ph: ph,
+            userIdx: client.userIdx,
+            match: match.CurrentMatchRecord().match_count,
+            round: match.CurrentMatchRecord().match.Round
+        };
+        client.socket.send(JSON.stringify(result));
     }
     SEND_SC_GAME_COMPUTE(client, match, data) {
         var _a;
@@ -264,6 +287,12 @@ class COREPROCESS {
         match.RecordUpdate(winner.userIdx, looser.userIdx);
         match.SaveAllPlayerRes(iType.PacketID.SC_GAME_RESULT, false);
         match.send_all(JSON.stringify(result));
+        // 모두 로비로 이동
+        winner.GoToLobby();
+        looser.GoToLobby();
+        Server_1.server.Matches.delete(match.matchIdx);
+    }
+    SEND_SC_GAME_END(client, match, data) {
     }
     SEND_SC_GAME_OUT(client, match, data) {
     }
