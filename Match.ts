@@ -200,8 +200,8 @@ export default class Match
     RecordUpdate(winner : number, looser : number)
     {
         // 단판으로 변경
-        const lastIdx = this.match_record.length-1;
-        
+        let lastIdx = this.match_record.length-1;
+        lastIdx = lastIdx < 0 ? 0 : lastIdx;
         this.match_record[lastIdx].R3 = {winner : winner, looser : looser};
         this.match_record[lastIdx].End = true;
         this.match_record[lastIdx].Winner = winner;
