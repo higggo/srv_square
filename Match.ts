@@ -201,7 +201,7 @@ export default class Match
     {
         // 단판으로 변경
         let lastIdx = this.match_record.length-1;
-        lastIdx = lastIdx < 0 ? 0 : lastIdx;
+        lastIdx = 0;
         this.match_record[lastIdx].R3 = {winner : winner, looser : looser};
         this.match_record[lastIdx].End = true;
         this.match_record[lastIdx].Winner = winner;
